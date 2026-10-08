@@ -65,7 +65,12 @@
     }catch(e){}
   }
   const waLink = text => 'https://wa.me/' + C.phone + '?text=' + encodeURIComponent(text);
-  const openWA = text => window.open(waLink(text), '_blank', 'noopener');
+  function openWA(text){
+    // In-app browsers (Instagram, Facebook) often block popups; fall back to the same tab
+    // so the enquiry is never silently lost.
+    const url = waLink(text), w = window.open(url, '_blank');
+    if(w) { try{ w.opener = null; }catch(e){} } else location.href = url;
+  }
   const telLink = 'tel:+' + C.phone;
 
   /* ---------------- icons ---------------- */
@@ -175,6 +180,61 @@
     return s + '</svg>';
   }
 
+  /* ---------------- real photos & lightbox ---------------- */
+  function cover(p){
+    return p.photos ? `<img src="${esc(p.photos[0].src)}" alt="${esc(p.name + ' — ' + p.photos[0].cap)}" loading="lazy" decoding="async">` : art(p);
+  }
+  function planSlides(p){
+    return [p.masterplan && { src:p.masterplan, cap:'Master plan', plan:true }, p.floorplan && { src:p.floorplan, cap:'Typical floor plan', plan:true }].filter(Boolean);
+  }
+  function photoGallery(p){
+    const all = p.photos.concat(planSlides(p)), side = all.slice(1, 3), more = all.length - 3;
+    return `<div class="gallery photos">
+      <button type="button" data-lb="0"><img src="${esc(all[0].src)}" alt="${esc(p.name + ' — ' + all[0].cap)}"><span class="g-label tag dark">Developer render</span></button>
+      ${side.map((s, i) => `<button type="button" data-lb="${i + 1}"><img src="${esc(s.src)}" alt="${esc(p.name + ' — ' + s.cap)}" class="${s.plan ? 'contain' : ''}" loading="lazy">${i === 1 && more > 0 ? `<span class="g-more">+${more} more</span>` : `<span class="g-label tag">${esc(s.cap)}</span>`}</button>`).join('')}
+    </div>`;
+  }
+  let lb = null;
+  function openLightbox(slides, start, title){
+    if(!lb){
+      lb = document.createElement('div'); lb.className = 'lightbox'; lb.setAttribute('role', 'dialog'); lb.setAttribute('aria-modal', 'true');
+      lb.innerHTML = `<div class="lb-top"><span class="lb-title"></span><span class="lb-count"></span><button class="lb-x" aria-label="Close">${I.x}</button></div>
+        <div class="lb-stage"><button class="lb-nav prev" aria-label="Previous">‹</button><figure><img alt=""><figcaption></figcaption></figure><button class="lb-nav next" aria-label="Next">›</button></div>
+        <div class="lb-thumbs"></div>`;
+      document.body.appendChild(lb);
+      lb.addEventListener('click', e => {
+        if(e.target.closest('.lb-x') || e.target === lb || e.target.classList.contains('lb-stage')) closeLb();
+        else if(e.target.closest('.prev')) lb.go(-1);
+        else if(e.target.closest('.next')) lb.go(1);
+        else { const t = e.target.closest('[data-i]'); if(t) lb.show(+t.dataset.i); }
+      });
+      let x0 = null;
+      lb.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; }, { passive:true });
+      lb.addEventListener('touchend', e => { if(x0 == null) return; const dx = e.changedTouches[0].clientX - x0; if(Math.abs(dx) > 45) lb.go(dx < 0 ? 1 : -1); x0 = null; });
+      document.addEventListener('keydown', e => {
+        if(!lb.classList.contains('open')) return;
+        if(e.key === 'ArrowRight') lb.go(1); else if(e.key === 'ArrowLeft') lb.go(-1); else if(e.key === 'Escape') closeLb();
+      });
+    }
+    let i = start;
+    lb.show = n => {
+      i = (n + slides.length) % slides.length;
+      const s = slides[i], img = $('figure img', lb);
+      img.src = s.src; img.alt = title + ' — ' + s.cap; img.classList.toggle('plan', !!s.plan);
+      $('figcaption', lb).textContent = s.cap + (s.plan ? '' : ' · developer render');
+      $('.lb-count', lb).textContent = (i + 1) + ' / ' + slides.length;
+      $$('.lb-thumbs button', lb).forEach((b, k) => b.classList.toggle('on', k === i));
+      const on = $('.lb-thumbs .on', lb); if(on) on.scrollIntoView({ block:'nearest', inline:'center' });
+    };
+    lb.go = d => lb.show(i + d);
+    $('.lb-title', lb).textContent = title;
+    $('.lb-thumbs', lb).innerHTML = slides.map((s, k) => `<button data-i="${k}" aria-label="${esc(s.cap)}"><img src="${esc(s.src)}" alt="" loading="lazy"></button>`).join('');
+    lb.classList.add('open'); document.body.style.overflow = 'hidden';
+    lb.show(start); $('.lb-x', lb).focus();
+  }
+  function closeLb(){ if(lb){ lb.classList.remove('open'); document.body.style.overflow = ''; } }
+  window.addEventListener('hashchange', closeLb);
+
   /* ---------------- shared fragments ---------------- */
   function reraTag(p){ return p.rera ? `<span class="tag ok">${I.shield}RERA</span>` : ''; }
   function heartBtn(id){
@@ -188,9 +248,9 @@
   function card(p){
     const l = LOC[p.loc];
     return `<article class="p-card">
-      <a class="p-media" href="#/project/${p.id}" aria-label="${esc(p.name)} details">${art(p)}
+      <a class="p-media" href="#/project/${p.id}" aria-label="${esc(p.name)} details">${cover(p)}
         <span class="p-tags">${p.type === 'commercial' ? '<span class="tag dark">Commercial</span>' : ''}${reraTag(p)}${p.brochure ? '<span class="tag">Brochure</span>' : ''}</span>
-        <span class="illus-note">Illustration</span></a>
+        ${p.photos ? `<span class="illus-note">${p.photos.length} photo${p.photos.length > 1 ? 's' : ''}</span>` : '<span class="illus-note">Illustration</span>'}</a>
       <span class="p-heart">${heartBtn(p.id)}</span>
       <div class="p-body">
         <div class="p-price"><b>${esc(p.price)}</b><small>${priceSub(p)}</small></div>
@@ -785,14 +845,14 @@
           <div class="pd-tools">${heartBtn(p.id)}<button class="icon-btn" data-share="${p.id}" aria-label="Share">${I.share}</button><button class="icon-btn${compare.includes(p.id) ? ' on' : ''}" data-cmpbtn="${p.id}" aria-label="Add to compare">${I.compare}</button></div>
         </div>
       </div>
-      <div class="gallery">
+      ${p.photos ? photoGallery(p) : `<div class="gallery">
         <div>${art(p)}<span class="g-label tag dark">Illustration · not actual elevation</span></div>
         <div><img data-real="assets/projects/${p.id}-elevation.jpg" alt="${esc(p.name)} elevation" hidden><div class="g-ph">${I.building}<span>Official elevation<br>shared on request</span></div><span class="g-label tag">Elevation</span></div>
         <div><img data-real="assets/projects/${p.id}-floorplan.jpg" alt="${esc(p.name)} floor plan" hidden><div class="g-ph">${I.grid}<span>RERA-approved floor plan<br>shared on request</span></div><span class="g-label tag">Floor plan</span></div>
-      </div>
+      </div>`}
       <div class="pd-layout">
         <div>
-          <nav class="pd-tabs" id="pdTabs"><a href="#ov" data-scroll="ov" class="on">Overview</a><a href="#cfg" data-scroll="cfg">Configurations</a>${insight ? '<a href="#ins" data-scroll="ins">Price insight</a>' : ''}<a href="#locn" data-scroll="locn">Location</a><a href="#emi" data-scroll="emi">EMI</a><a href="#bld" data-scroll="bld">Developer</a></nav>
+          <nav class="pd-tabs" id="pdTabs"><a href="#ov" data-scroll="ov" class="on">Overview</a><a href="#cfg" data-scroll="cfg">Configurations</a>${p.masterplan || p.floorplan ? '<a href="#plans" data-scroll="plans">Plans</a>' : ''}${insight ? '<a href="#ins" data-scroll="ins">Price insight</a>' : ''}<a href="#locn" data-scroll="locn">Location</a><a href="#emi" data-scroll="emi">EMI</a><a href="#bld" data-scroll="bld">Developer</a></nav>
           <section class="panel" id="ov"><h2>Overview</h2>
             <div class="kv-grid">${kv.map(([k, v]) => `<div><span>${k}</span><b>${esc(v)}</b></div>`).join('')}</div>
             ${p.stats ? `<div class="stat-row">${p.stats.map(st => `<div><b>${st.v.toLocaleString('en-IN', { maximumFractionDigits:st.d || 0 })}</b><span>${esc(st.l)}</span></div>`).join('')}</div>` : ''}
@@ -805,6 +865,9 @@
             </tbody></table></div>
             <p class="fine">Areas from developer collateral. Always confirm the RERA carpet area — not just the saleable figure — before booking.</p>
           </section>
+          ${p.masterplan || p.floorplan ? `<section class="panel" id="plans"><h2>Master plan &amp; floor plan <small>from the developer's brochure</small></h2>
+            <div class="plan-grid">${planSlides(p).map((s, i) => `<button type="button" class="plan-tile" data-lb="${(p.photos ? p.photos.length : 0) + i}"><img src="${esc(s.src)}" alt="${esc(p.name + ' ' + s.cap)}" loading="lazy"><span class="tag">${esc(s.cap)}</span></button>`).join('')}</div>
+            <p class="fine">Tap to enlarge. Plans are indicative — the RERA-approved drawings are legally binding; we share them on request.</p></section>` : ''}
           ${insight ? `<section class="panel" id="ins"><h2>Price insight</h2>${insight}</section>` : ''}
           <section class="panel" id="locn"><h2>Location <small>${esc(l ? l.name : p.locality)}</small></h2>
             <div class="map-wrap"><div class="loc-map" id="pdMap"></div><p class="map-note">Pin shows the approximate locality, not the exact site. <a class="inline-link" target="_blank" rel="noopener" href="https://www.google.com/maps/search/${encodeURIComponent(p.name + ' ' + p.builder + ' ' + p.locality + ' Hyderabad')}">Open in Google Maps →</a></p></div>
@@ -868,6 +931,10 @@
     const p = PBYID[id]; if(!p) return;
     document.body.classList.add('has-pd-cta');
     document.title = p.name + ' by ' + p.builder + ' — ' + p.price + ' | Livarea';
+    if(p.photos || p.masterplan || p.floorplan){
+      const slides = (p.photos || []).concat(planSlides(p));
+      $$('[data-lb]').forEach(el => el.addEventListener('click', () => openLightbox(slides, +el.dataset.lb, p.name)));
+    }
     $$('img[data-real]').forEach(img => {
       img.onload = () => { img.hidden = false; img.nextElementSibling.style.display = 'none'; };
       img.src = img.dataset.real;
@@ -941,7 +1008,7 @@
       <div class="wrap section">
         <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px">${picker}<button class="btn btn-ghost btn-sm" data-share-compare>${I.share}Share this comparison</button></div>
         <div class="cmp-scroll"><table class="cmp-table">
-          <thead><tr><th></th>${list.map(p => `<td><div class="cmp-art">${art(p)}</div><a href="#/project/${p.id}" style="font-weight:800;font-size:15px">${esc(p.name)}</a><div style="margin-top:6px;display:flex;gap:6px"><a class="btn btn-wa btn-sm" target="_blank" rel="noopener" href="${waLink("Hi Livarea, I'm comparing " + list.map(x => x.name).join(', ') + ' and would like advice on ' + p.name + '.')}">${I.wa}Ask</a><button class="btn btn-ghost btn-sm" data-cmp-rm="${p.id}">Remove</button></div></td>`).join('')}</tr></thead>
+          <thead><tr><th></th>${list.map(p => `<td><div class="cmp-art">${cover(p)}</div><a href="#/project/${p.id}" style="font-weight:800;font-size:15px">${esc(p.name)}</a><div style="margin-top:6px;display:flex;gap:6px"><a class="btn btn-wa btn-sm" target="_blank" rel="noopener" href="${waLink("Hi Livarea, I'm comparing " + list.map(x => x.name).join(', ') + ' and would like advice on ' + p.name + '.')}">${I.wa}Ask</a><button class="btn btn-ghost btn-sm" data-cmp-rm="${p.id}">Remove</button></div></td>`).join('')}</tr></thead>
           <tbody>${rows.map(([k, f]) => `<tr><th>${k}</th>${list.map(p => `<td>${f(p)}</td>`).join('')}</tr>`).join('')}</tbody>
         </table></div>
         <div class="callout" style="margin-top:18px"><b>Can't decide?</b> Send us this comparison on WhatsApp — we'll tell you honestly which one fits your budget and timeline, including anything the brochures don't say.</div>

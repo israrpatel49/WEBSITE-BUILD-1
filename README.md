@@ -20,15 +20,18 @@ Edit **`assets/js/data.js`** only. It holds:
 - `RESALE` / `RENTALS`: add verified listings here. While an array is empty, its page shows a requirement form instead of an empty list.
 - `GUIDES` / `FAQ`: the FAQ schema for Google is generated from this array automatically
 
-## Real project photos
-Each project card shows a generated skyline drawn from the project's own tower and floor counts, labelled "Illustration". To show official images on a project page, add:
+## Project photos
+Add a `photos` list to a project in `data.js` (see Kohinoor, Pristinia and Olympus for examples):
 
-```
-assets/projects/{id}-elevation.jpg
-assets/projects/{id}-floorplan.jpg
+```js
+photos:[{ src:'assets/projects/kohinoor/01.jpg', cap:'The seven towers' }, …],
+masterplan:'assets/projects/kohinoor/masterplan.jpg', floorplan:'assets/projects/kohinoor/floorplan.jpg',
 ```
 
-`{id}` is the project's `id` in `data.js`, for example `palais` or `olympus`. The images appear automatically.
+The first photo is shown on the project card; all of them appear in the project page gallery and full-screen viewer. Keep each image under ~400 KB, about 1600 px wide. Projects without photos show a labelled illustration instead.
+
+## Leads
+Every form opens WhatsApp with the enquiry pre-filled — **but the visitor still has to press Send**. To capture every lead even when they don't, set up `tools/livarea-leads.gs` (instructions at the top of that file) and paste its URL into `leadEndpoint` in `data.js`. Each submission is then saved to a Google Sheet and emailed to you.
 
 ## Known trade-offs
 - Pages are rendered in the browser (hash routes such as `#/project/palais`). Google can index JavaScript-rendered pages, but more slowly and less reliably than plain static HTML. If organic search traffic matters, the next step is to pre-render one HTML file per project.

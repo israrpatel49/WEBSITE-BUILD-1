@@ -84,8 +84,9 @@ window.LOCALITIES = [
    - psf: indicative ₹/sqft where the source quoted one
    - configs: rows for the project page's configuration table
    - brochure: optional direct-download link
-   Real photos: drop files named assets/projects/{id}-elevation.jpg and
-   {id}-floorplan.jpg and they appear automatically on the project page.
+   - photos: [{ src, cap }] — first photo is used on cards; all appear in the gallery
+   - masterplan / floorplan: optional image paths, shown in the Plans section
+   Projects without photos show a labelled illustration instead.
    --------------------------------------------------------------------- */
 window.PROJECTS = [
   { id:'marina', name:'Marina', builder:'Western Construction', locality:'Puppalaguda, Financial District', loc:'puppalaguda',
@@ -100,6 +101,9 @@ window.PROJECTS = [
     price:'₹1.8 Cr onwards', minCr:1.8, priceNote:'2–4 BHK · ~1,380–4,595 sq.ft · ~₹8,300/sqft',
     bhk:[2,3,4], bhkLabel:'2, 3, 4 BHK', sqft:[1380,4595], psf:8300,
     configs:[{ c:'2, 3 & 4 BHK', a:'~1,380 – 4,595 sq.ft' }],
+    rera:'TS RERA P02400006086',
+    photos:[{ src:'assets/projects/pristinia/01.jpg', cap:'Tower elevation' },{ src:'assets/projects/pristinia/02.jpg', cap:'Daytime view of the towers' },{ src:'assets/projects/pristinia/03.jpg', cap:'Aerial view' },{ src:'assets/projects/pristinia/04.jpg', cap:'Club Pristine clubhouse' },{ src:'assets/projects/pristinia/05.jpg', cap:'Seating zone at the podium' },{ src:'assets/projects/pristinia/06.jpg', cap:'Tower elevation, dusk' }],
+    masterplan:'assets/projects/pristinia/masterplan.jpg', floorplan:'assets/projects/pristinia/floorplan.jpg',
     brochure:'https://drive.google.com/uc?export=download&id=1co4TDknNcc14HCaQJWjvna4hm36B3i4P',
     wa:'Rajapushpa Pristinia, Kokapet' },
 
@@ -137,6 +141,8 @@ window.PROJECTS = [
     stats:[{v:2,l:'Towers'},{v:44,l:'Floors'},{v:5.06,l:'Acres',d:2},{v:854,l:'Residences'}],
     configs:[{ c:'3 BHK', a:'From 1,670 sq.ft' },{ c:'4 BHK', a:'Up to 3,000 sq.ft' }],
     highlights:['Among the tallest towers in the Financial District','Adjacent to WaveRock SEZ · Amazon India ~5 min','Terrace swimming pool, squash, crossfit & co-working clubhouse','Trusted Sumadhura delivery track record'],
+    photos:[{ src:'assets/projects/olympus/01.jpg', cap:'The two 44-floor towers at night' },{ src:'assets/projects/olympus/02.jpg', cap:'Tower elevation' }],
+    masterplan:'assets/projects/olympus/masterplan.jpg', floorplan:'assets/projects/olympus/floorplan.jpg',
     brochure:'https://drive.google.com/uc?export=download&id=1PTOIQ5Hp1aojCrWvXWCjysnfx0iXcqLT',
     wa:'The Olympus by Sumadhura, Nanakramguda' },
 
@@ -193,6 +199,8 @@ window.PROJECTS = [
     bhk:[2,3,4], bhkLabel:'2, 3, 4 BHK + duplex', sqft:[1296,7619], psf:null,
     art:{ towers:7, floors:36 },
     configs:[{ c:'2, 3 & 4 BHK + duplex', a:'~1,296 – 7,619 sq.ft' }],
+    photos:[{ src:'assets/projects/kohinoor/01.jpg', cap:'The seven towers' },{ src:'assets/projects/kohinoor/02.jpg', cap:'Elevation from the entrance' },{ src:'assets/projects/kohinoor/03.jpg', cap:'Aerial view at dusk' },{ src:'assets/projects/kohinoor/04.jpg', cap:'Clubhouse and swimming pool' },{ src:'assets/projects/kohinoor/05.jpg', cap:'Grand entrance' },{ src:'assets/projects/kohinoor/06.jpg', cap:'Lobby' },{ src:'assets/projects/kohinoor/07.jpg', cap:'Landscaped gardens' },{ src:'assets/projects/kohinoor/08.jpg', cap:'Sports courts' },{ src:'assets/projects/kohinoor/09.jpg', cap:'Living room (show-flat render)' },{ src:'assets/projects/kohinoor/10.jpg', cap:'Bedroom (show-flat render)' }],
+    masterplan:'assets/projects/kohinoor/masterplan.jpg', floorplan:'assets/projects/kohinoor/floorplan.jpg',
     brochure:'https://drive.google.com/uc?export=download&id=1IARsTx5tsxnhjNnMO1XqnbwZiepqB9mw',
     wa:'Kohinoor by Auro Realty, HITEC City' },
 
