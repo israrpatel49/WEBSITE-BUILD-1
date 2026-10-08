@@ -120,6 +120,8 @@ window.PROJECTS = [
     bhk:[3], bhkLabel:'3 BHK', sqft:[1860,2350], psf:8500,
     art:{ towers:1, floors:14 },
     configs:[{ c:'3 BHK', a:'1,860 sq.ft' },{ c:'3 BHK', a:'2,320 sq.ft' },{ c:'3 BHK', a:'2,350 sq.ft' }],
+    photos:[{ src:'assets/projects/beaumonde/01.jpg', cap:'The 14-storey tower' },{ src:'assets/projects/beaumonde/02.jpg', cap:'Lake-side elevation' },{ src:'assets/projects/beaumonde/03.jpg', cap:'Aerial view of the rooftop' },{ src:'assets/projects/beaumonde/04.jpg', cap:'The entry' },{ src:'assets/projects/beaumonde/05.jpg', cap:'Rooftop infinity pool' },{ src:'assets/projects/beaumonde/06.jpg', cap:'The Sky Bar' },{ src:'assets/projects/beaumonde/07.jpg', cap:'Open-air rooftop cinema' },{ src:'assets/projects/beaumonde/08.jpg', cap:'Le Cercle clubhouse' },{ src:'assets/projects/beaumonde/09.jpg', cap:'Gym' },{ src:'assets/projects/beaumonde/10.jpg', cap:'Living and dining (show-flat render)' },{ src:'assets/projects/beaumonde/11.jpg', cap:'Master bedroom (show-flat render)' }],
+    masterplan:'assets/projects/beaumonde/masterplan.jpg', floorplan:'assets/projects/beaumonde/floorplan.jpg',
     brochure:'https://drive.google.com/uc?export=download&id=1s_C3dKTtw1Um5_-A_83LPW1dGtUV4MwL',
     wa:'Ambience Beaumonde, Kokapet' },
 
@@ -131,6 +133,8 @@ window.PROJECTS = [
     stats:[{v:7.35,l:'Acres',d:2},{v:523,l:'Residences'},{v:3,l:'Wings'},{v:85000,l:'Sq.ft Clubhouse'}],
     configs:[{ c:'5 BHK · Wing 1', a:'6,500 – 6,610 sq.ft' },{ c:'4 BHK · Wing 2', a:'4,850 sq.ft' },{ c:'4 BHK · Wing 3', a:'3,800 – 4,030 sq.ft' }],
     highlights:['Low density — only 72 units per acre','Sky Lounge at 212.9 m with connected bridges','9 m high vehicle-free landscaped podium','IGBC Pre-Certified Gold · ERV + evaporative cooling'],
+    photos:[{ src:'assets/projects/palais/02.jpg', cap:'Grand entrance' },{ src:'assets/projects/palais/01.jpg', cap:'The floating tower and its three wings' },{ src:'assets/projects/palais/03.jpg', cap:'Tower at dusk' },{ src:'assets/projects/palais/04.jpg', cap:'Floating clubhouse terraces' },{ src:'assets/projects/palais/05.jpg', cap:'View from a residence balcony' },{ src:'assets/projects/palais/06.jpg', cap:'Residence balconies' },{ src:'assets/projects/palais/07.jpg', cap:'Clubhouse lounge' }],
+    masterplan:'assets/projects/palais/masterplan.jpg', floorplan:'assets/projects/palais/floorplan.jpg',
     wa:'Sumadhura Palais Royale' },
 
   { id:'olympus', name:'The Olympus', builder:'Sumadhura Group', locality:'Nanakramguda, Financial District', loc:'nanakramguda',
@@ -154,6 +158,8 @@ window.PROJECTS = [
     stats:[{v:4,l:'Towers'},{v:37,l:'Floors (G+)'},{v:592,l:'Residences'},{v:4,l:'Units / Floor'}],
     configs:[{ c:'3 BHK', a:'2,900 sq.ft' },{ c:'4 BHK', a:'3,300 sq.ft' }],
     highlights:['Every home is a corner home — 4 apartments per floor','Facade in 20 terracotta, sandstone, brick & metal shades','3-level basement · separate resident & visitor entries','Landscape zones for multi-generational living'],
+    photos:[{ src:'assets/projects/songs/01.jpg', cap:'The towers in terracotta' },{ src:'assets/projects/songs/02.jpg', cap:'Skyline view' },{ src:'assets/projects/songs/03.jpg', cap:'Looking up the tower' },{ src:'assets/projects/songs/04.jpg', cap:'Entrance gateway' },{ src:'assets/projects/songs/05.jpg', cap:'Podium and landscape' },{ src:'assets/projects/songs/06.jpg', cap:'Central lawns' },{ src:'assets/projects/songs/07.jpg', cap:'Amphitheatre lawn' },{ src:'assets/projects/songs/08.jpg', cap:'The clubhouse' },{ src:'assets/projects/songs/09.jpg', cap:'Poolside deck' },{ src:'assets/projects/songs/10.jpg', cap:'Clubhouse at night' },{ src:'assets/projects/songs/11.jpg', cap:'Gym' },{ src:'assets/projects/songs/12.jpg', cap:'Living room (show-flat render)' }],
+    masterplan:'assets/projects/songs/masterplan.jpg', floorplan:'assets/projects/songs/floorplan.jpg',
     brochure:'https://drive.google.com/uc?export=download&id=1odRMPuUUnq_gReTZIVzy0V7gZkQkydI-',
     wa:'Myscape Songs of the Sun, Financial District' },
 
@@ -190,6 +196,8 @@ window.PROJECTS = [
     stats:[{v:12,l:'Acres'},{v:6,l:'Towers'},{v:46,l:'Levels'},{v:100000,l:'Sq.ft Clubhouse'}],
     configs:[{ c:'3.5 & 4 BHK', a:'2,909 – 3,910 sq.ft' }],
     highlights:['First floor starts ~75 ft above ground (2 cellar + 4 podium + stilt)','Private lobby for every apartment · 11 ft ceilings','1,77,759 sq.ft covered amenities at podium level','Views of Gandipet & Kokapet lakes','75% open spaces · 7.5-acre central landscape'],
+    photos:[{ src:'assets/projects/fortune/01.jpg', cap:'The six towers' },{ src:'assets/projects/fortune/02.jpg', cap:'Aerial view' },{ src:'assets/projects/fortune/03.jpg', cap:'Entrance and podium' },{ src:'assets/projects/fortune/04.jpg', cap:'Drop-off and arrival' },{ src:'assets/projects/fortune/05.jpg', cap:'Podium gardens and pool' },{ src:'assets/projects/fortune/06.jpg', cap:'Central landscape' },{ src:'assets/projects/fortune/07.jpg', cap:'Pickleball court' },{ src:'assets/projects/fortune/08.jpg', cap:'Living room (show-flat render)' },{ src:'assets/projects/fortune/09.jpg', cap:'Bedroom (show-flat render)' },{ src:'assets/projects/fortune/10.jpg', cap:'Banquet hall' },{ src:'assets/projects/fortune/11.jpg', cap:'Gym' }],
+    masterplan:'assets/projects/fortune/masterplan.jpg', floorplan:'assets/projects/fortune/floorplan.jpg',
     brochure:'https://drive.google.com/uc?export=download&id=19biEXRsas6peGjLn3apgyEtw6yrsUVh3',
     wa:'Surajbhan Fortune Grande, Kokapet' },
 
@@ -220,6 +228,7 @@ window.PROJECTS = [
     bhk:[4], bhkLabel:'4 BHK', sqft:[5250,7460], psf:null, lake:true,
     art:{ towers:5, floors:50 },
     configs:[{ c:'4 BHK', a:'5,250 – 7,460 sq.ft' }],
+    photos:[{ src:'assets/projects/onebymsn/01.jpg', cap:'The towers at dusk' }],
     wa:'One by MSN, Neopolis' },
 
   { id:'windsor', name:'Western Windsor Park', builder:'Western Construction', locality:'Nanakramguda · Commercial', loc:'nanakramguda',
