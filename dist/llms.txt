@@ -1,0 +1,40 @@
+# Livarea
+
+> Livarea is a Hyderabad real estate advisory (15+ years) and authorised marketing associate for leading developers. TS RERA agent registration A02500005244. Contact: +91 70200 39986 (call/WhatsApp), livareaproperties@gmail.com. Prices are indicative starting prices compiled from public listings as of July 2026; information last updated 2026-10-09.
+
+## Projects
+- [Pristinia by Rajapushpa Properties](https://www.livarea.in/project/pristinia/): 2, 3, 4 BHK, Kokapet, Hyderabad. ₹1.8 Cr onwards; 1380–4595 sq.ft; TS RERA P02400006086.
+- [Skyra by Rajapushpa Properties](https://www.livarea.in/project/skyra/): 3, 4 BHK, Neopolis, Kokapet, Hyderabad. Price on request; 3140–5350 sq.ft; TS RERA P02400009520.
+- [Beaumonde by Koncept Ambience](https://www.livarea.in/project/beaumonde/): 3 BHK, Kokapet, Hyderabad. ₹1.9 Cr onwards; 1860–2350 sq.ft.
+- [Palais Royale by Sumadhura Group](https://www.livarea.in/project/palais/): 4, 5 BHK, Puppalaguda, Financial District, Hyderabad. ₹4.75 Cr onwards; 3800–6610 sq.ft; TG RERA P02400008107.
+- [The Olympus by Sumadhura Group](https://www.livarea.in/project/olympus/): 3, 4 BHK, Nanakramguda, Financial District, Hyderabad. ₹2.2 Cr onwards; 1670–3000 sq.ft; TS RERA P02400003072.
+- [Songs of the Sun by Myscape Properties](https://www.livarea.in/project/songs/): 3, 4 BHK, Financial District, Hyderabad. ₹2.9 Cr onwards; 2900–3300 sq.ft; TG RERA P02400008721.
+- [Brooklyn Avenue by Godrej Properties](https://www.livarea.in/project/brooklyn/): 3, 4 BHK, Kukatpally, Hyderabad. ₹2.10 Cr onwards; 1588–3262 sq.ft; TG RERA P02200010981.
+- [Regal Pavilion by Godrej Properties](https://www.livarea.in/project/regal/): 2, 3, 4 BHK, Rajendra Nagar, Hyderabad. ₹1.10 Cr onwards; 1352–3571 sq.ft.
+- [Fortune Grande by Surajbhan (SSI)](https://www.livarea.in/project/fortune/): 3.5, 4 BHK, Neopolis, Kokapet, Hyderabad. ₹2.62 Cr onwards; 2909–3910 sq.ft.
+- [Kohinoor by Auro Realty](https://www.livarea.in/project/kohinoor/): 2, 3, 4 BHK + duplex, HITEC City, Hyderabad. ₹2.70 Cr onwards; 1296–7619 sq.ft.
+- [One by Navanaami Projects](https://www.livarea.in/project/navanaami/): 3.5, 4 BHK, Kokapet, Hyderabad. ₹2.1 Cr onwards; 2437–3379 sq.ft; RERA P02400010208.
+- [Western Windsor Park by Western Construction](https://www.livarea.in/project/windsor/): Office space, Nanakramguda · Commercial, Hyderabad. ₹12,000 / sq.ft.
+
+## Localities
+- [Kokapet, Hyderabad](https://www.livarea.in/locality/kokapet/): Hyderabad's "Next Gachibowli". Price band ₹9,000–15,000/sqft; outlook 10–15% / yr.
+- [Neopolis, Hyderabad](https://www.livarea.in/locality/neopolis/): Planned SEZ beside Gandipet Lake. Price band ₹9,000–15,000/sqft; outlook 10–15% / yr.
+- [Financial District, Hyderabad](https://www.livarea.in/locality/financial-district/): Steady, established value. Price band ₹9,500–16,000/sqft; outlook 8–10% / yr.
+- [Nanakramguda, Hyderabad](https://www.livarea.in/locality/nanakramguda/): Beside WaveRock & the office belt. Price band ₹9,500–16,000/sqft; outlook 8–10% / yr.
+- [Puppalaguda, Hyderabad](https://www.livarea.in/locality/puppalaguda/): Between Manikonda & the Financial District. Price band ₹9,500–16,000/sqft; outlook 8–10% / yr.
+- [HITEC City, Hyderabad](https://www.livarea.in/locality/hitec-city/): Established, metro-anchored demand. Price band ₹8,000–12,000/sqft; outlook Strong rental demand.
+- [Kukatpally, Hyderabad](https://www.livarea.in/locality/kukatpally/): KPHB Metro, minutes from HITEC City. Price band ₹8,000–12,000/sqft; outlook Strong rental demand.
+- [Rajendra Nagar, Hyderabad](https://www.livarea.in/locality/rajendra-nagar/): South Hyderabad's metro-linked bet. Price band ₹6,000–9,000/sqft; outlook 8–12% / yr.
+- [Kollur, Hyderabad](https://www.livarea.in/locality/kollur/): Highest-upside entry point. Price band ₹5,700–13,000/sqft; outlook ~116% over 5 yrs.
+- [Tellapur, Hyderabad](https://www.livarea.in/locality/tellapur/): Low-density premium living. Price band ₹7,700–10,300/sqft; outlook 12–14% / yr.
+- [Narsingi, Hyderabad](https://www.livarea.in/locality/narsingi/): ORR-side, next to Kokapet. Price band ₹7,700–10,300/sqft; outlook 12–14% / yr.
+- [Gachibowli, Hyderabad](https://www.livarea.in/locality/gachibowli/): The original IT corridor.
+- [Kondapur, Hyderabad](https://www.livarea.in/locality/kondapur/): Residential belt beside HITEC City.
+
+## Guides and tools
+- [Buying property in Hyderabad — guides & FAQ](https://www.livarea.in/guides/): RERA, documents, stamp duty (~6% in urban Telangana), home loans, safety.
+- [EMI calculator](https://www.livarea.in/tools/emi/), [Affordability](https://www.livarea.in/tools/afford/), [Stamp duty](https://www.livarea.in/tools/stamp/), [Rent vs buy](https://www.livarea.in/tools/rentbuy/), [Area converter](https://www.livarea.in/tools/area/)
+- [List a property for sale or rent](https://www.livarea.in/post/)
+
+## Optional
+- [Full project fact sheet](https://www.livarea.in/llms-full.txt)

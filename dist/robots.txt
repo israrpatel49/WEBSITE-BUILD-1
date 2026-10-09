@@ -1,0 +1,56 @@
+# Livarea — all crawlers welcome, including AI answer engines.
+User-agent: *
+Allow: /
+Disallow: /assets/brochures/
+Disallow: /compare/
+Disallow: /shortlist/
+
+User-agent: GPTBot
+Allow: /
+Disallow: /assets/brochures/
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /assets/brochures/
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /assets/brochures/
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /assets/brochures/
+
+User-agent: Claude-User
+Allow: /
+Disallow: /assets/brochures/
+
+User-agent: Claude-SearchBot
+Allow: /
+Disallow: /assets/brochures/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /assets/brochures/
+
+User-agent: Perplexity-User
+Allow: /
+Disallow: /assets/brochures/
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /assets/brochures/
+
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /assets/brochures/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /assets/brochures/
+
+User-agent: CCBot
+Allow: /
+Disallow: /assets/brochures/
+
+Sitemap: https://www.livarea.in/sitemap.xml

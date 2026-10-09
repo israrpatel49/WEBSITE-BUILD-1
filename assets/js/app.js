@@ -1,6 +1,9 @@
 /* =====================================================================
    LIVAREA — application
-   Hash-routed single-page app. All content comes from data.js.
+   Single-page app. All content comes from data.js.
+   Routing: '#/route' URLs when opened as a plain file or preview; real '/route/'
+   paths when the page is built for production (<html data-routing="path">),
+   where every route is also pre-rendered to static HTML by tools/build.js.
    ===================================================================== */
 (function(){
   'use strict';
@@ -8,6 +11,29 @@
   const C = window.LIVAREA, PROJECTS = window.PROJECTS, LOCS = window.LOCALITIES;
   const RESALE = window.RESALE || [], RENTALS = window.RENTALS || [];
   const app = document.getElementById('app');
+  const SITE = (C.siteUrl || 'https://www.livarea.in').replace(/\/$/, '');
+  const PATH_MODE = document.documentElement.dataset.routing === 'path';
+  const BASE = PATH_MODE ? '/' : '';
+  // Relative asset paths in data.js must become root-relative on nested /route/ pages.
+  function asset(u){ return !u || /^(https?:|\/|data:)/.test(u) ? u : BASE + u; }
+  if(PATH_MODE) PROJECTS.forEach(p => {
+    (p.photos || []).forEach(x => { x.src = asset(x.src); });
+    ['masterplan', 'floorplan', 'brochure'].forEach(k => { if(p[k]) p[k] = asset(p[k]); });
+  });
+  // '#/project/x?y=1' -> '/project/x/?y=1'
+  function toPath(h){
+    const [path, qs] = String(h).replace(/^#?\/?/, '').split('?');
+    const clean = path.replace(/\/+$/, '');
+    return '/' + (clean ? clean + '/' : '') + (qs ? '?' + qs : '');
+  }
+  function navigate(h){
+    if(PATH_MODE){ history.pushState(null, '', toPath(h)); router(); }
+    else location.hash = h;
+  }
+  function replaceRoute(h){ history.replaceState(null, '', PATH_MODE ? toPath(h) : h); }
+  function currentRoute(){
+    return PATH_MODE ? location.pathname.replace(/^\/+|\/+$/g, '') + location.search : location.hash.replace(/^#\/?/, '');
+  }
 
   /* ---------------- helpers ---------------- */
   const $ = (s, r) => (r || document).querySelector(s);
@@ -72,6 +98,130 @@
     if(w) { try{ w.opener = null; }catch(e){} } else location.href = url;
   }
   const telLink = 'tel:+' + C.phone;
+
+  /* ---------------- visitor memory & validation ---------------- */
+  // Name + phone are remembered on this device only, to pre-fill the next form.
+  let visitor = store.get('visitor', null);
+  function rememberVisitor(d){
+    if(d && d.name && d.phone){ visitor = { name:String(d.name).trim(), phone:String(d.phone).trim(), email:d.email || (visitor && visitor.email) || '' }; store.set('visitor', visitor); }
+  }
+  function validPhone(v){
+    v = String(v || '').trim();
+    const digits = v.replace(/\D/g, '');
+    if(/^(?:91|0)?[6-9]\d{9}$/.test(digits)) return true;              // Indian mobile, with or without +91 / 0
+    return v.startsWith('+') && digits.length >= 8 && digits.length <= 15; // international (NRI) numbers
+  }
+  function fieldError(input, msg){
+    const wrap = input.closest('.field') || input.parentElement;
+    let el = wrap.querySelector('.err');
+    if(!msg){ if(el) el.remove(); input.removeAttribute('aria-invalid'); return; }
+    if(!el){ el = document.createElement('p'); el.className = 'err'; el.setAttribute('role', 'alert'); wrap.appendChild(el); }
+    el.textContent = msg; input.setAttribute('aria-invalid', 'true');
+  }
+  function validateForm(f){
+    let first = null;
+    $$('input, select, textarea', f).forEach(i => {
+      if(i.closest('[hidden]')) return;
+      let msg = '';
+      const v = (i.value || '').trim();
+      if(i.required && !v && i.type !== 'checkbox') msg = 'Please fill this in.';
+      else if(i.type === 'checkbox' && i.required && !i.checked) msg = 'Please tick to continue.';
+      else if(i.type === 'tel' && v && !validPhone(v)) msg = 'Enter a valid 10-digit mobile number (or +country code).';
+      else if(i.type === 'email' && v && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) msg = 'Enter a valid email address.';
+      else if(i.name === 'name' && v && v.length < 2) msg = 'Please enter your name.';
+      fieldError(i, msg);
+      if(msg && !first) first = i;
+    });
+    if(first){ first.focus(); return false; }
+    return true;
+  }
+  // Capture phase: runs before every page's own submit handler and blocks invalid submissions.
+  document.addEventListener('submit', e => {
+    const f = e.target;
+    if(!f.matches || !f.matches('form')) return;
+    f.setAttribute('novalidate', '');
+    if(!validateForm(f)){ e.preventDefault(); e.stopImmediatePropagation(); return; }
+    rememberVisitor(Object.fromEntries(new FormData(f)));
+  }, true);
+  document.addEventListener('input', e => { if(e.target.getAttribute && e.target.getAttribute('aria-invalid')) fieldError(e.target, ''); });
+  function prefill(root){
+    if(!visitor) return;
+    $$('input[name=name]', root).forEach(i => { if(!i.value) i.value = visitor.name; });
+    $$('input[name=phone]', root).forEach(i => { if(!i.value) i.value = visitor.phone; });
+  }
+
+  /* ---------------- brochure gate ----------------
+     A brochure is released only after the visitor submits a valid name + WhatsApp
+     number. Static hosting can't hide the file itself, so brochures are also kept out
+     of search engines (robots.txt) and never linked directly from the page. */
+  function startDownload(p){
+    const a = document.createElement('a'), ext = /^https?:/.test(p.brochure);
+    a.href = ext ? p.brochure : asset(p.brochure);
+    if(ext){ a.target = '_blank'; a.rel = 'noopener'; } else a.download = slugify(p.builder + ' ' + p.name) + '-brochure.pdf';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  function openBrochureGate(p){
+    const known = visitor && visitor.name && visitor.phone;
+    const body = known ? `
+        <p class="sub">We'll send the brochure to the number below and start your download.</p>
+        <div class="agent-row" style="margin-bottom:14px"><span class="b-mono" style="width:40px;height:40px;font-size:15px">${esc(visitor.name.slice(0, 1).toUpperCase())}</span><div><b>${esc(visitor.name)}</b><span>${esc(visitor.phone)}</span></div></div>
+        <form data-form="brogate" data-known="1">
+          <input type="hidden" name="name" value="${esc(visitor.name)}"><input type="hidden" name="phone" value="${esc(visitor.phone)}">
+          <button class="btn btn-primary btn-block" type="submit">${I.download}Download brochure</button>
+          <button class="btn btn-ghost btn-block" type="button" data-notme style="margin-top:8px">Not you? Use different details</button>
+        </form>` : `
+        <p class="sub">Enter your details to unlock the official brochure — floor plans, specifications and amenities.</p>
+        <form data-form="brogate">
+          <div class="field"><label for="g-name">Full name</label><input id="g-name" name="name" required autocomplete="name"></div>
+          <div class="field"><label for="g-phone">WhatsApp number</label><input id="g-phone" name="phone" type="tel" required placeholder="10-digit mobile" autocomplete="tel" inputmode="tel"></div>
+          <div class="field"><label for="g-email">Email <span class="muted" style="font-weight:500">(optional)</span></label><input id="g-email" name="email" type="email" autocomplete="email"></div>
+          <div class="field"><label for="g-who">I am</label><select id="g-who" name="who"><option>Buying to live in</option><option>Investing</option><option>An NRI buyer</option><option>A channel partner</option><option>Just researching</option></select></div>
+          <label class="toggle-row" style="font-size:12.5px;font-weight:500;margin:4px 0 12px"><input type="checkbox" name="consent" required checked>I agree to Livarea contacting me about this project on WhatsApp or phone.</label>
+          <button class="btn btn-primary btn-block" type="submit">${I.download}Unlock &amp; download</button>
+        </form>`;
+    openModal(`<span class="tag" style="margin-bottom:10px">${I.doc}Official brochure</span>
+      <h3 style="font-size:20px;margin:6px 0 2px">${esc(p.name)}</h3><p class="muted" style="margin:0 0 12px;font-size:13.5px">by ${esc(p.builder)} · ${esc(LOC[p.loc] ? LOC[p.loc].name : p.locality)}</p>
+      <div id="gateBody">${body}</div>${leadNote}`, m => {
+      const nm = $('[data-notme]', m);
+      if(nm) nm.addEventListener('click', () => { visitor = null; store.set('visitor', null); closeModal(); openBrochureGate(p); });
+      $('form', m).addEventListener('submit', e => {
+        e.preventDefault();
+        const d = Object.fromEntries(new FormData(e.target));
+        saveLead('Brochure download', { name:d.name, phone:d.phone, email:d.email || '', interest:p.name, occupation:d.who || '', message:'Brochure unlocked: ' + p.name });
+        startDownload(p);
+        const msg = `Hi Livarea, I'm ${d.name} (${d.phone}). I've downloaded the brochure for ${p.wa} — please share the latest price sheet and availability.`;
+        $('#gateBody', m).innerHTML = `<div class="gate-ok">${I.check}<div><b>Your download has started</b><span>If it doesn't, use the button below.</span></div></div>
+          <button class="btn btn-primary btn-block" type="button" data-again>${I.download}Download again</button>
+          <a class="btn btn-wa btn-block" style="margin-top:8px" target="_blank" rel="noopener" href="${waLink(msg)}">${I.wa}Get the price sheet on WhatsApp</a>
+          <a class="btn btn-ghost btn-block" style="margin-top:8px" href="#/project/${p.id}" data-close data-pane-target="visit">${I.calendar}Book a site visit</a>`;
+        $('[data-again]', m).addEventListener('click', () => startDownload(p));
+        // Without a Sheet endpoint, WhatsApp is the only way the lead reaches Livarea.
+        if(!C.leadEndpoint) setTimeout(() => openWA(msg), 600);
+        toast('Brochure unlocked');
+      });
+    });
+  }
+
+  /* ---------------- modal ---------------- */
+  function openModal(html, onOpen){
+    let bg = $('#modalBg');
+    if(!bg){
+      bg = document.createElement('div'); bg.id = 'modalBg'; bg.className = 'modal-bg';
+      bg.innerHTML = `<div class="modal" role="dialog" aria-modal="true"><button class="icon-btn x" aria-label="Close" data-close>${I.x}</button><div class="modal-in"></div></div>`;
+      document.body.appendChild(bg);
+      bg.addEventListener('click', e => { if(e.target === bg || e.target.closest('[data-close]')) closeModal(); });
+    }
+    $('.modal-in', bg).innerHTML = html;
+    bg.classList.add('open'); document.body.style.overflow = 'hidden';
+    if(onOpen) onOpen(bg);
+    const f = $('input:not([type=hidden]), button', $('.modal-in', bg)); if(f) setTimeout(() => f.focus(), 30);
+  }
+  function closeModal(){ const bg = $('#modalBg'); if(bg){ bg.classList.remove('open'); document.body.style.overflow = ''; } }
+  document.addEventListener('keydown', e => { if(e.key === 'Escape') closeModal(); });
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-bro]');
+    if(b){ e.preventDefault(); const p = PBYID[b.dataset.bro]; if(p && p.brochure) openBrochureGate(p); }
+  });
 
   /* ---------------- icons ---------------- */
   const I = {
@@ -266,6 +416,7 @@
         <div class="p-actions">
           <a class="btn btn-ghost btn-sm" href="#/project/${p.id}">View details</a>
           <a class="btn btn-wa btn-sm" target="_blank" rel="noopener" href="${waLink("Hi Livarea, I'm interested in " + p.wa + '.')}">${I.wa}Contact</a>
+          ${p.brochure ? `<button class="icon-btn" type="button" data-bro="${p.id}" aria-label="Download ${esc(p.name)} brochure" title="Download brochure">${I.download}</button>` : ''}
         </div>
       </div>
     </article>`;
@@ -328,7 +479,7 @@
       box.classList.add('open');
     }
     function close(){ box.classList.remove('open'); }
-    function pick(i){ const x = items[i]; if(!x) return; close(); input.blur(); location.hash = x.go; }
+    function pick(i){ const x = items[i]; if(!x) return; close(); input.blur(); navigate(x.go); }
     input.setAttribute('autocomplete', 'off');
     input.addEventListener('focus', render);
     input.addEventListener('input', render);
@@ -532,13 +683,13 @@
       q.focus();
     }));
     function go(text){
-      if(mode === 'prelaunch'){ location.hash = '#/upcoming' + (text ? '?area=' + encodeURIComponent(text) : ''); return; }
+      if(mode === 'prelaunch'){ navigate('#/upcoming' + (text ? '?area=' + encodeURIComponent(text) : '')); return; }
       const params = new URLSearchParams();
       const match = text && LOCS.find(l => l.name.toLowerCase() === text.toLowerCase());
       if(match) params.set('loc', match.slug); else if(text) params.set('q', text);
       const b = budget.value;
       if(b && (mode === 'buy' || mode === 'commercial')){ const [lo, hi] = b.split('-'); if(+lo) params.set('min', lo); if(+hi < 99) params.set('max', hi); }
-      location.hash = '#/' + mode + (params.toString() ? '?' + params : '');
+      navigate('#/' + mode + (params.toString() ? '?' + params : ''));
     }
     $('#heroForm').addEventListener('submit', e => { e.preventDefault(); go(q.value.trim()); });
     attachSuggest(q, $('#heroSuggest'), go);
@@ -691,7 +842,7 @@
     }
   }
   function updateSearch(rerenderFilters){
-    history.replaceState(null, '', stateToHash(searchState));
+    replaceRoute(stateToHash(searchState));
     if(rerenderFilters !== false) renderFilters();
     renderResults();
   }
@@ -842,9 +993,11 @@
           <p class="loc">${I.pin}${esc(p.locality)}, Hyderabad</p>
         </div>
         <div class="pd-price"><b>${esc(p.price)}<sup style="font-size:.5em;color:var(--muted)">*</sup></b><span>${esc(p.priceNote)}</span>
+          ${p.brochure ? `<button class="btn btn-primary pd-bro" type="button" data-bro="${p.id}">${I.download}Download brochure</button>` : ''}
           <div class="pd-tools">${heartBtn(p.id)}<button class="icon-btn" data-share="${p.id}" aria-label="Share">${I.share}</button><button class="icon-btn${compare.includes(p.id) ? ' on' : ''}" data-cmpbtn="${p.id}" aria-label="Add to compare">${I.compare}</button></div>
         </div>
       </div>
+      ${p.imgNote ? `<p class="fine" style="margin:-12px 0 14px">${esc(p.imgNote)}</p>` : ''}
       ${p.photos ? photoGallery(p) : `<div class="gallery">
         <div>${art(p)}<span class="g-label tag dark">Illustration · not actual elevation</span></div>
         <div><img data-real="assets/projects/${p.id}-elevation.jpg" alt="${esc(p.name)} elevation" hidden><div class="g-ph">${I.building}<span>Official elevation<br>shared on request</span></div><span class="g-label tag">Elevation</span></div>
@@ -852,8 +1005,9 @@
       </div>`}
       <div class="pd-layout">
         <div>
-          <nav class="pd-tabs" id="pdTabs"><a href="#ov" data-scroll="ov" class="on">Overview</a><a href="#cfg" data-scroll="cfg">Configurations</a>${p.masterplan || p.floorplan ? '<a href="#plans" data-scroll="plans">Plans</a>' : ''}${insight ? '<a href="#ins" data-scroll="ins">Price insight</a>' : ''}<a href="#locn" data-scroll="locn">Location</a><a href="#emi" data-scroll="emi">EMI</a><a href="#bld" data-scroll="bld">Developer</a></nav>
-          <section class="panel" id="ov"><h2>Overview</h2>
+          <nav class="pd-tabs" id="pdTabs"><a href="#ov" data-scroll="ov" class="on">Overview</a><a href="#cfg" data-scroll="cfg">Configurations</a>${p.masterplan || p.floorplan ? '<a href="#plans" data-scroll="plans">Plans</a>' : ''}${insight ? '<a href="#ins" data-scroll="ins">Price insight</a>' : ''}<a href="#locn" data-scroll="locn">Location</a><a href="#emi" data-scroll="emi">EMI</a><a href="#bld" data-scroll="bld">Developer</a><a href="#faq" data-scroll="faq">FAQ</a></nav>
+          <section class="panel" id="ov"><h2>Overview <small>Updated ${esc(C.updatedLabel || C.pricesAsOf)}</small></h2>
+            <p class="tldr">${esc(projectSummary(p))}</p>
             <div class="kv-grid">${kv.map(([k, v]) => `<div><span>${k}</span><b>${esc(v)}</b></div>`).join('')}</div>
             ${p.stats ? `<div class="stat-row">${p.stats.map(st => `<div><b>${st.v.toLocaleString('en-IN', { maximumFractionDigits:st.d || 0 })}</b><span>${esc(st.l)}</span></div>`).join('')}</div>` : ''}
             <p style="margin-top:16px">${esc(p.blurb)}</p>
@@ -889,11 +1043,14 @@
             <p>Before you book, ask for the developer's delivery record on completed projects and visit one in person. We'll arrange it — and tell you plainly if a project isn't the right fit.</p>
             ${others.length ? `<div class="results-grid" style="margin-top:14px">${others.map(card).join('')}</div>` : ''}
           </section>
+          <section class="panel" id="faq"><h2>Questions about ${esc(p.name)}</h2>
+            ${projectFAQ(p).map(([q, a], i) => `<details class="acc"${i === 0 ? ' open' : ''}><summary>${esc(q)}</summary><div class="acc-body"><p>${esc(a)}</p></div></details>`).join('')}
+          </section>
           ${similar.length ? `<section style="margin-top:28px"><div class="sec-head"><div><h2 style="font-size:22px">Similar projects</h2><p>Same corridor or a similar budget.</p></div></div><div class="results-grid">${similar.map(card).join('')}</div></section>` : ''}
         </div>
         <aside>
           <div class="side-card" id="contactCard">
-            <div class="agent-row"><img src="assets/img/livarea-mark.png" alt=""><div><b>Livarea Advisory</b><span class="verified">${I.shield}TS RERA ${esc(C.rera)}</span></div></div>
+            <div class="agent-row"><img src="${asset('assets/img/livarea-mark.png')}" alt=""><div><b>Livarea Advisory</b><span class="verified">${I.shield}TS RERA ${esc(C.rera)}</span></div></div>
             <div class="seg" role="tablist"><button class="on" data-pane="enq">Enquire</button><button data-pane="visit">Site visit</button><button data-pane="bro">Brochure</button></div>
             <form data-pane-body="enq" data-form="enquire">
               <div class="field"><label for="e-name">Name</label><input id="e-name" name="name" required autocomplete="name"></div>
@@ -912,12 +1069,11 @@
               <button class="btn btn-primary btn-block" type="submit">${I.calendar}Request site visit</button>
               <p class="form-note">A request, not a confirmed slot — we confirm with you on WhatsApp.</p>
             </form>
-            <form data-pane-body="bro" data-form="brochure" hidden>
-              <p class="sc-sub" style="margin-top:0">${p.brochure ? "Enter your details — we'll open WhatsApp and start the download." : "We'll send the brochure to your WhatsApp."}</p>
-              <div class="field"><label for="b-name">Name</label><input id="b-name" name="name" required autocomplete="name"></div>
-              <div class="field"><label for="b-phone">WhatsApp number</label><input id="b-phone" name="phone" type="tel" required placeholder="+91" autocomplete="tel"></div>
-              <button class="btn btn-primary btn-block" type="submit">${I.download}${p.brochure ? 'Download brochure' : 'Request brochure'}</button>
-            </form>
+            <div data-pane-body="bro" hidden>
+              <ul class="hl-list" style="grid-template-columns:1fr;margin:0 0 14px">${['Floor plans & unit sizes','Specifications','Amenities & master plan'].map(t => `<li>${I.check}<span>${t}</span></li>`).join('')}</ul>
+              <button class="btn btn-primary btn-block" type="button" data-bro="${p.id}">${I.download}${p.brochure ? 'Download official brochure' : 'Request brochure'}</button>
+              <p class="form-note">Unlocks after you share your name and WhatsApp number.</p>
+            </div>
             ${leadNote}
             <div style="display:flex;gap:8px;margin-top:12px"><a class="btn btn-ghost btn-sm" style="flex:1" href="${telLink}">${I.phone}Call</a><a class="btn btn-ghost btn-sm" style="flex:1" href="#/compare">${I.compare}Compare</a></div>
           </div>
@@ -930,7 +1086,6 @@
   ROUTES['project'].after = function(params, id){
     const p = PBYID[id]; if(!p) return;
     document.body.classList.add('has-pd-cta');
-    document.title = p.name + ' by ' + p.builder + ' — ' + p.price + ' | Livarea';
     if(p.photos || p.masterplan || p.floorplan){
       const slides = (p.photos || []).concat(planSlides(p));
       $$('[data-lb]').forEach(el => el.addEventListener('click', () => openLightbox(slides, +el.dataset.lb, p.name)));
@@ -966,10 +1121,6 @@
         const nice = new Date(date + 'T00:00').toLocaleDateString('en-IN', { weekday:'short', day:'numeric', month:'short' });
         saveLead('Site visit request', { name:d.name, phone:d.phone, interest:p.name, prefDate:date, prefTime:slot, contactMethod:vt });
         openWA(`Hi Livarea, I'm ${d.name} (${d.phone}). I'd like a ${vt.toLowerCase()} ${vt === 'Video call' ? 'walkthrough' : 'site visit'} of ${p.wa} on ${nice}, ${slot.toLowerCase()}.`);
-      } else if(f.dataset.form === 'brochure'){
-        saveLead('Brochure', { name:d.name, phone:d.phone, interest:p.name, message:p.brochure ? 'Brochure downloaded' : 'Brochure requested' });
-        openWA(`Hi Livarea, I'm ${d.name} (${d.phone}). Please send me the brochure for ${p.wa}.`);
-        if(p.brochure){ const fr = document.createElement('iframe'); fr.style.display = 'none'; fr.src = p.brochure; document.body.appendChild(fr); setTimeout(() => fr.remove(), 60000); }
       }
       toast('Opening WhatsApp…');
     });
@@ -1001,7 +1152,7 @@
       ['Residences', p => st(p, 'residence')],
       ['RERA no.', p => p.rera ? esc(p.rera) : 'Ask us'],
       ['Possession', p => esc(p.possession || 'Ask us')],
-      ['Brochure', p => p.brochure ? 'Available' : 'On request'],
+      ['Brochure', p => p.brochure ? `<button class="btn btn-ghost btn-sm" data-bro="${p.id}">${I.download}Download</button>` : 'On request'],
       ['Highlights', p => p.highlights ? '<ul style="padding-left:16px">' + p.highlights.slice(0, 3).map(h => `<li style="margin-bottom:4px">${esc(h)}</li>`).join('') + '</ul>' : '—']
     ];
     return pageHero('Compare projects', 'Side by side, from the same verified data. Green ticks mark the lowest starting price and ₹/sq.ft.') + `
@@ -1017,9 +1168,9 @@
   ROUTES['compare'].after = function(){
     const add = $('#cmpAdd');
     if(add) add.addEventListener('change', () => { if(add.value){ compare = compare.concat(add.value).slice(0, 3); store.set('compare', compare); router(); } });
-    $$('[data-cmp-rm]').forEach(b => b.addEventListener('click', () => { compare = compare.filter(x => x !== b.dataset.cmpRm); store.set('compare', compare); history.replaceState(null, '', '#/compare'); router(); }));
+    $$('[data-cmp-rm]').forEach(b => b.addEventListener('click', () => { compare = compare.filter(x => x !== b.dataset.cmpRm); store.set('compare', compare); replaceRoute('#/compare'); router(); }));
     const sh = $('[data-share-compare]');
-    if(sh) sh.addEventListener('click', () => share(location.href.split('#')[0] + '#/compare?ids=' + compare.join(','), 'Compare projects on Livarea'));
+    if(sh) sh.addEventListener('click', () => share(PATH_MODE ? SITE + toPath('#/compare?ids=' + compare.join(',')) : location.href.split('#')[0] + '#/compare?ids=' + compare.join(','), 'Compare projects on Livarea'));
   };
 
   /* ---------------- SHORTLIST ---------------- */
@@ -1069,10 +1220,12 @@
         <div class="map-wrap" style="margin-bottom:28px"><div class="loc-map" id="locMap"></div><p class="map-note">Approximate locality centre.</p></div>
         <div class="sec-head"><div><h2>Projects in ${esc(l.name)}</h2></div>${list.length ? `<a class="see-all" href="#/buy?loc=${slug}">Filter &amp; sort ${I.arrow}</a>` : ''}</div>
         ${list.length ? `<div class="results-grid">${list.map(card).join('')}</div>` : emptyState(I.pin, 'No live listing here right now', 'We cover ' + esc(l.name) + ' and can source new launches and resale homes for you.', `<a class="btn btn-primary" href="#/upcoming?area=${encodeURIComponent(l.name)}">Alert me to new projects</a>`)}
+        <div class="sec-head" style="margin-top:36px"><div><h2>${esc(l.name)}: common questions</h2></div></div>
+        <div style="max-width:860px">${localityFAQ(l).map(([q, a]) => `<details class="acc"><summary>${esc(q)}</summary><div class="acc-body"><p>${esc(a)}</p></div></details>`).join('')}</div>
         ${nearP.length ? `<div class="sec-head" style="margin-top:36px"><div><h2>Nearby in ${esc(l.group)}</h2></div></div><div class="results-grid">${nearP.slice(0, 4).map(card).join('')}</div>` : ''}
       </div>`;
   };
-  ROUTES['locality'].after = (params, slug) => { const l = LOC[slug]; if(l){ document.title = 'Property in ' + l.name + ', Hyderabad | Livarea'; drawMap($('#locMap'), projectsIn(slug), { extra:projectsIn(slug).length ? [] : [l], zoom:13 }); } };
+  ROUTES['locality'].after = (params, slug) => { const l = LOC[slug]; if(l){ drawMap($('#locMap'), projectsIn(slug), { extra:projectsIn(slug).length ? [] : [l], zoom:13 }); } };
 
   /* ---------------- BUILDERS ---------------- */
   ROUTES['builders'] = () => pageHero('Builders we represent', 'Every partner is vetted on delivery record and construction quality. We disclose any developer we work with exclusively.') + `
@@ -1136,7 +1289,6 @@
   const AREA_UNITS = [['sqft','Square feet',1],['sqyd','Square yards',9],['sqm','Square metres',10.7639],['gunta','Guntas',1089],['cent','Cents',435.6],['acre','Acres',43560],['hectare','Hectares',107639.1]];
   ROUTES['tools'].after = function(params, tab){
     tab = TOOLS.some(t => t[0] === tab) ? tab : 'emi';
-    document.title = TOOLS.find(t => t[0] === tab)[1] + ' — Hyderabad property tools | Livarea';
     const v = id => +$('#' + id).value;
     if(tab === 'emi') bindSliders(['tLoan','tRate','tYrs'], () => {
       const P = v('tLoan'), R = v('tRate'), Y = v('tYrs'), e = emi(P, R, Y), T = e*Y*12, Int = T - P;
@@ -1222,8 +1374,57 @@
   };
 
   /* ---------------- POST PROPERTY ---------------- */
-  ROUTES['post'] = () => pageHero('List your property — free', 'Selling or renting out a home in West Hyderabad? We verify it, photograph it properly and bring you screened buyers or tenants — not a flood of random calls.') + `
-    <div class="wrap section split">
+  ROUTES['post'] = () => pageHero('Post your property — free', 'Sell or rent out your home in Hyderabad. We verify it, price it against real comparables and bring you screened buyers or tenants — not a flood of random calls.') + `
+    <div class="wrap section split wide-left">
+      <form class="form-card wiz" id="postWiz" data-form="postwiz" novalidate>
+        <div class="wiz-top"><div class="wiz-steps" aria-hidden="true"><span class="on">1</span><i></i><span>2</span><i></i><span>3</span></div><p class="wiz-label" id="wizLabel">Step 1 of 3 · Basics</p></div>
+        <div class="wiz-bar"><i id="wizBar" style="width:33%"></i></div>
+
+        <fieldset data-step="1">
+          <legend class="sr-only">Basics</legend>
+          <span class="lbl">I want to</span>
+          <div class="seg" data-pick="intent"><button type="button" class="on" data-v="Sell">Sell</button><button type="button" data-v="Rent out">Rent out</button></div>
+          <span class="lbl">I am the</span>
+          <div class="chips" data-pick="role" style="margin-bottom:14px"><button type="button" class="chip on" data-v="Owner">Owner</button><button type="button" class="chip" data-v="Agent">Agent / broker</button><button type="button" class="chip" data-v="Builder">Builder</button></div>
+          <span class="lbl">Property type</span>
+          <div class="type-grid" data-pick="ptype">
+            ${[['Apartment', I.building], ['Villa', I.home], ['Independent house', I.home], ['Plot / land', I.map], ['Office space', I.briefcase], ['Shop / showroom', I.wallet]].map(([t, ic], i) => `<button type="button" class="type-tile${i === 0 ? ' on' : ''}" data-v="${t}">${ic}<span>${t}</span></button>`).join('')}
+          </div>
+          <div class="two"><div class="field"><label for="w-loc">Locality</label><input id="w-loc" name="loc" list="locList" required placeholder="e.g. Kokapet, Gachibowli" autocomplete="off">${locDatalist()}</div>
+          <div class="field"><label for="w-proj">Project / society <span class="muted" style="font-weight:500">(optional)</span></label><input id="w-proj" name="proj" placeholder="e.g. My Home Bhooja"></div></div>
+        </fieldset>
+
+        <fieldset data-step="2" hidden>
+          <legend class="sr-only">Property details</legend>
+          <div data-show="bhk"><span class="lbl">Bedrooms</span>
+            <div class="chips" data-pick="bhk" style="margin-bottom:14px">${['1 BHK','2 BHK','3 BHK','4 BHK','5+ BHK'].map((b, i) => `<button type="button" class="chip${i === 2 ? ' on' : ''}" data-v="${b}">${b}</button>`).join('')}</div></div>
+          <div class="two"><div class="field"><label for="w-area">Area</label><div class="input-unit"><input id="w-area" name="area" type="number" min="1" inputmode="numeric" required placeholder="e.g. 1850"><select name="areaUnit" aria-label="Area unit"><option>sq.ft</option><option>sq.yd</option><option>acres</option></select></div></div>
+          <div class="field" data-show="floor"><label for="w-floor">Floor</label><div class="input-unit"><input id="w-floor" name="floor" inputmode="numeric" placeholder="e.g. 12"><span class="unit-of">of</span><input name="floors" inputmode="numeric" placeholder="28" aria-label="Total floors"></div></div></div>
+          <div class="two"><div class="field" data-show="furn"><label for="w-furn">Furnishing</label><select id="w-furn" name="furn"><option>Unfurnished</option><option>Semi-furnished</option><option>Fully furnished</option></select></div>
+          <div class="field"><label for="w-face">Facing</label><select id="w-face" name="facing"><option value="">Not sure</option><option>East</option><option>North</option><option>North-East</option><option>West</option><option>South</option><option>North-West</option><option>South-East</option><option>South-West</option></select></div></div>
+          <div class="field" data-show="status"><span class="lbl">Status</span><div class="chips" data-pick="status"><button type="button" class="chip on" data-v="Ready to move">Ready to move</button><button type="button" class="chip" data-v="Under construction">Under construction</button></div></div>
+          <div class="field"><label for="w-price" id="w-price-l">Expected price (₹)</label><input id="w-price" name="price" inputmode="numeric" required placeholder="e.g. 16000000"><p class="hint" id="w-price-w">Type the full amount — we'll show it in lakh / crore.</p></div>
+          <div class="two" data-show="rent" hidden><div class="field"><label for="w-dep">Security deposit (₹)</label><input id="w-dep" name="deposit" inputmode="numeric" placeholder="e.g. 150000"></div>
+          <div class="field"><label for="w-avail">Available from</label><input id="w-avail" name="avail" type="date"></div></div>
+          <label class="toggle-row" style="margin:-2px 0 12px"><input type="checkbox" name="nego" checked>Price is negotiable</label>
+          <span class="lbl">Amenities</span>
+          <div class="chips" data-multi="amen" style="margin-bottom:12px">${['Lift','Power backup','Covered parking','Gated community','Swimming pool','Gym','Clubhouse','24×7 security','Vastu compliant','Pet friendly'].map(a => `<button type="button" class="chip">${a}</button>`).join('')}</div>
+          <div class="field"><label for="w-desc">Anything buyers should know? <span class="muted" style="font-weight:500">(optional)</span></label><textarea id="w-desc" name="desc" maxlength="600" placeholder="e.g. Corner unit, lake view, recently renovated, documents ready…"></textarea></div>
+        </fieldset>
+
+        <fieldset data-step="3" hidden>
+          <legend class="sr-only">Your details</legend>
+          <div class="two"><div class="field"><label for="w-name">Your name</label><input id="w-name" name="name" required autocomplete="name"></div>
+          <div class="field"><label for="w-phone">WhatsApp number</label><input id="w-phone" name="phone" type="tel" required placeholder="10-digit mobile" autocomplete="tel" inputmode="tel"></div></div>
+          <div class="two"><div class="field"><label for="w-email">Email <span class="muted" style="font-weight:500">(optional)</span></label><input id="w-email" name="email" type="email" autocomplete="email"></div>
+          <div class="field"><label for="w-time">Best time to call</label><select id="w-time" name="time">${timeOpts}</select></div></div>
+          <div class="callout" style="margin-bottom:12px">${I.spark} <b>Photos sell homes.</b> After you submit, send 5–10 photos on WhatsApp and we'll add them to your listing.</div>
+          <label class="toggle-row" style="font-size:12.5px;font-weight:500;margin-bottom:12px"><input type="checkbox" name="consent" required checked>I confirm I'm authorised to list this property and agree to be contacted by Livarea.</label>
+        </fieldset>
+
+        <div class="wiz-nav"><button type="button" class="btn btn-ghost" data-wiz="back" hidden>Back</button><button type="button" class="btn btn-primary" data-wiz="next">Continue ${I.arrow}</button><button type="submit" class="btn btn-primary" data-wiz="submit" hidden>${I.check}Submit listing</button></div>
+        <p class="form-note" id="wizDraft">Your progress is saved on this device.</p>
+      </form>
       <div>
         <div class="point-list" style="margin-top:0">
           <div><span class="pi">${I.users}</span><div><b>Screened enquiries only</b><span>We confirm budget, timeline and intent before anyone visits.</span></div></div>
@@ -1231,19 +1432,106 @@
           <div><span class="pi">${I.chart}</span><div><b>Priced from real comparables</b><span>We tell you what similar homes in your project actually go for.</span></div></div>
           <div><span class="pi">${I.doc}</span><div><b>Paperwork handled</b><span>Agreement, registration and handover guidance, start to finish.</span></div></div>
         </div>
+        <div class="steps" style="grid-template-columns:1fr;margin-top:22px">
+          <div><h3>We call you within a working day</h3><p>To verify ownership details and agree the asking price.</p></div>
+          <div><h3>Your listing goes live</h3><p>With your photos, on Livarea and to our buyer &amp; tenant network.</p></div>
+        </div>
         <p class="disclaimer">Listing is free. Brokerage on a successful sale or rental is agreed with you in writing upfront.</p>
       </div>
-      <form class="form-card" id="postForm" data-form="post">
-        <h3>Property details</h3><p class="sub">We'll call to verify and set up your listing.</p>
-        <div class="seg" data-single-seg="intent"><button type="button" class="on">Sell</button><button type="button">Rent out</button></div>
-        <div class="two"><div class="field"><label for="o-type">Property type</label><select id="o-type" name="type">${typeOpts}</select></div><div class="field"><label for="o-bhk">BHK</label><select id="o-bhk" name="bhk"><option>1 BHK</option><option>2 BHK</option><option selected>3 BHK</option><option>4 BHK</option><option>5 BHK+</option><option>N/A</option></select></div></div>
-        <div class="two"><div class="field"><label for="o-loc">Locality</label><input id="o-loc" name="loc" list="locList" required placeholder="e.g. Kokapet">${locDatalist()}</div><div class="field"><label for="o-proj">Project / society</label><input id="o-proj" name="proj" placeholder="e.g. My Home Avatar"></div></div>
-        <div class="two"><div class="field"><label for="o-area">Area (sq.ft)</label><input id="o-area" name="area" type="number" placeholder="e.g. 1850"></div><div class="field"><label for="o-price">Expected price / rent</label><input id="o-price" name="price" placeholder="e.g. ₹1.6 Cr or ₹45,000/mo"></div></div>
-        <div class="field"><label for="o-furn">Furnishing</label><select id="o-furn" name="furn"><option>Unfurnished</option><option>Semi-furnished</option><option>Fully furnished</option></select></div>
-        <div class="two"><div class="field"><label for="o-name">Your name</label><input id="o-name" name="name" required autocomplete="name"></div><div class="field"><label for="o-phone">WhatsApp number</label><input id="o-phone" name="phone" type="tel" required placeholder="+91" autocomplete="tel"></div></div>
-        <button class="btn btn-primary btn-block" type="submit">${I.plus}Submit listing</button>${leadNote}
-      </form>
     </div>`;
+  ROUTES['post'].after = function(){
+    const f = $('#postWiz'); if(!f) return;
+    let step = 1;
+    const pick = k => { const b = $(`[data-pick="${k}"] .on`, f); return b ? b.dataset.v : ''; };
+    const labels = ['Basics', 'Property details', 'Your details'];
+    const DRAFT = 'postDraft';
+    function adapt(){
+      const t = pick('ptype'), rent = pick('intent') === 'Rent out', plot = t === 'Plot / land', com = /Office|Shop/.test(t);
+      $('[data-show="bhk"]', f).hidden = plot || com;
+      $('[data-show="floor"]', f).hidden = plot || t === 'Villa' || t === 'Independent house';
+      $('[data-show="furn"]', f).hidden = plot;
+      $('[data-show="status"]', f).hidden = rent;
+      $('[data-show="rent"]', f).hidden = !rent;
+      $('#w-price-l', f).textContent = rent ? 'Expected monthly rent (₹)' : 'Expected price (₹)';
+      $('#w-price', f).placeholder = rent ? 'e.g. 45000' : 'e.g. 16000000';
+      priceWords();
+    }
+    function priceWords(){
+      const v = +String($('#w-price', f).value).replace(/[^\d.]/g, '');
+      $('#w-price-w', f).textContent = v ? words(v) + (pick('intent') === 'Rent out' ? ' per month' : '') : 'Type the full amount — we\'ll show it in lakh / crore.';
+    }
+    function show(n, quiet){
+      step = n;
+      $$('fieldset[data-step]', f).forEach(fs => fs.hidden = +fs.dataset.step !== n);
+      $$('.wiz-steps span', f).forEach((sp, i) => { sp.classList.toggle('on', i < n); sp.classList.toggle('done', i < n - 1); });
+      $('#wizBar').style.width = (n / 3 * 100) + '%';
+      $('#wizLabel').textContent = `Step ${n} of 3 · ${labels[n - 1]}`;
+      $('[data-wiz="back"]', f).hidden = n === 1;
+      $('[data-wiz="next"]', f).hidden = n === 3;
+      $('[data-wiz="submit"]', f).hidden = n !== 3;
+      prefill(f);
+      if(!quiet) f.scrollIntoView({ behavior:'smooth', block:'start' });
+    }
+    function saveDraft(){
+      const d = Object.fromEntries(new FormData(f));
+      $$('[data-pick]', f).forEach(g => d['pick_' + g.dataset.pick] = pick(g.dataset.pick));
+      d.amen = multiVal(f, 'amen'); d.step = step;
+      store.set(DRAFT, d);
+    }
+    function loadDraft(){
+      const d = store.get(DRAFT, null); if(!d) return;
+      Object.entries(d).forEach(([k, v]) => {
+        if(k.startsWith('pick_')){ const g = $(`[data-pick="${k.slice(5)}"]`, f); if(g && v) $$('button', g).forEach(b => b.classList.toggle('on', b.dataset.v === v)); return; }
+        if(k === 'amen'){ $$('[data-multi="amen"] .chip', f).forEach(b => b.classList.toggle('on', (v || []).includes(b.textContent))); return; }
+        const el = f.elements[k]; if(!el || k === 'consent') return;
+        if(el.type === 'checkbox') el.checked = v === 'on'; else el.value = v;
+      });
+      $('#wizDraft').textContent = 'We restored your unsaved draft.';
+    }
+    f.addEventListener('click', e => {
+      const b = e.target.closest('[data-pick] button');
+      if(b){ $$('button', b.parentElement).forEach(x => x.classList.toggle('on', x === b)); adapt(); saveDraft(); return; }
+      const w = e.target.closest('[data-wiz]');
+      if(!w) return;
+      if(w.dataset.wiz === 'back') show(step - 1);
+      if(w.dataset.wiz === 'next' && validateForm($(`fieldset[data-step="${step}"]`, f))){ show(step + 1); saveDraft(); }
+    });
+    f.addEventListener('input', e => { if(e.target.id === 'w-price') priceWords(); saveDraft(); });
+    f.addEventListener('change', saveDraft);
+    f.addEventListener('keydown', e => { if(e.key === 'Enter' && e.target.tagName === 'INPUT' && step < 3){ e.preventDefault(); $('[data-wiz="next"]', f).click(); } });
+    f.addEventListener('submit', e => {
+      e.preventDefault();
+      const d = Object.fromEntries(new FormData(f));
+      const intent = pick('intent'), t = pick('ptype'), rent = intent === 'Rent out';
+      const bhk = $('[data-show="bhk"]', f).hidden ? '' : pick('bhk');
+      const ref = 'LV-' + Date.now().toString(36).slice(-5).toUpperCase();
+      const amt = +String(d.price).replace(/[^\d.]/g, '');
+      const priceTxt = amt ? words(amt) + (rent ? '/month' : '') : d.price;
+      const amen = multiVal(f, 'amen');
+      const facts = [bhk, t, d.area && `${d.area} ${d.areaUnit}`, d.floor && `floor ${d.floor}${d.floors ? ' of ' + d.floors : ''}`, d.facing && d.facing + ' facing', !$('[data-show="furn"]', f).hidden && d.furn, !rent && pick('status')].filter(Boolean);
+      saveLead('Property listing', { name:d.name, phone:d.phone, email:d.email || '', interest:intent, propertyType:t, area:d.loc,
+        budget:priceTxt + (d.nego ? ' (negotiable)' : ''), timeline:rent ? 'Available ' + (d.avail || 'now') : pick('status'), prefTime:d.time, occupation:pick('role'),
+        message:`${ref} · ${facts.join(' · ')}${d.proj ? ' · ' + d.proj : ''}${rent && d.deposit ? ' · deposit ' + words(+d.deposit) : ''}${amen.length ? ' · ' + amen.join(', ') : ''}${d.desc ? ' · ' + d.desc : ''}` });
+      const text = `Hi Livarea, I've listed my property (ref ${ref}). I want to ${intent.toLowerCase()} a ${facts.join(', ')} in ${d.loc}${d.proj ? ' (' + d.proj + ')' : ''}. Expected ${rent ? 'rent' : 'price'}: ${priceTxt}${d.nego ? ', negotiable' : ''}.${rent && d.deposit ? ' Deposit: ' + words(+d.deposit) + '.' : ''}${amen.length ? ' Amenities: ' + amen.join(', ') + '.' : ''} I'm the ${pick('role').toLowerCase()} — ${d.name}, ${d.phone}. Sending photos next.`;
+      store.set(DRAFT, null);
+      f.outerHTML = `<div class="form-card wiz-done" id="postDone">
+        <div class="gate-ok">${I.check}<div><b>Listing received</b><span>Reference <b>${ref}</b> — we'll call you within one working day.</span></div></div>
+        <div class="kv-grid" style="grid-template-columns:1fr 1fr;margin-bottom:14px"><div><span>Listing</span><b>${esc(intent)} · ${esc(t)}</b></div><div><span>Locality</span><b>${esc(d.loc)}</b></div><div><span>${rent ? 'Rent' : 'Price'}</span><b>${esc(priceTxt)}</b></div><div><span>Size</span><b>${esc(d.area + ' ' + d.areaUnit)}</b></div></div>
+        <p style="font-weight:700;margin-bottom:8px">Next: send 5–10 photos</p>
+        <p class="muted" style="font-size:13.5px">Living room, bedrooms, kitchen, balcony view and the building exterior. Daylight photos work best.</p>
+        <a class="btn btn-wa btn-block" target="_blank" rel="noopener" href="${waLink(text)}">${I.wa}Send details &amp; photos on WhatsApp</a>
+        <div style="display:flex;gap:8px;margin-top:8px"><a class="btn btn-ghost" style="flex:1" href="${telLink}">${I.phone}Call us</a><a class="btn btn-ghost" style="flex:1" href="#/post" data-again-post>${I.plus}List another</a></div>
+      </div>`;
+      const done = $('#postDone'); if(PATH_MODE) rewriteLinks(done);
+      done.scrollIntoView({ behavior:'smooth', block:'start' });
+      $('[data-again-post]', done).addEventListener('click', e => { e.preventDefault(); router(); });
+      if(!C.leadEndpoint) setTimeout(() => openWA(text), 700);
+      toast('Listing received — ' + ref);
+    });
+    loadDraft(); adapt();
+    const d0 = store.get(DRAFT, null);
+    show(d0 && d0.step ? Math.min(+d0.step, 3) : 1, true);
+  };
 
   /* ---------------- GUIDES & FAQ ---------------- */
   ROUTES['guides'] = () => pageHero('Guides & FAQs', 'A few things worth knowing before you sign anything — written plainly, not in legal jargon.') + `
@@ -1342,7 +1630,7 @@
   });
   document.addEventListener('submit', e => {
     const f = e.target, kind = f.dataset.form;
-    if(!kind || ['enquire','visit','brochure'].includes(kind)) return;
+    if(!kind || ['enquire','visit','brogate','postwiz'].includes(kind)) return;
     e.preventDefault();
     const d = Object.fromEntries(new FormData(f));
     let text = '', source = '', lead = {};
@@ -1391,7 +1679,7 @@
   function updateBadges(){
     $$('[data-count="shortlist"]').forEach(el => el.textContent = shortlist.length || '');
     const tray = $('#cmpTray');
-    tray.classList.toggle('show', compare.length > 0 && !location.hash.startsWith('#/compare'));
+    tray.classList.toggle('show', compare.length > 0 && !currentRoute().startsWith('compare'));
     $('#cmpItems').innerHTML = compare.map(id => `<span class="ct-item">${esc(PBYID[id].name)}<button data-cmp-x="${id}" aria-label="Remove">×</button></span>`).join('');
     $('#cmpGo').textContent = compare.length > 1 ? 'Compare ' + compare.length : 'Add 1 more';
   }
@@ -1412,7 +1700,7 @@
       $$(`[data-heart="${id}"]`).forEach(b => { b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
       toast(on ? 'Saved to shortlist' : 'Removed from shortlist');
       updateBadges();
-      if(!on && location.hash.startsWith('#/shortlist')) router();
+      if(!on && currentRoute().startsWith('shortlist')) router();
       return;
     }
     const cb = e.target.closest('[data-cmpbtn]');
@@ -1448,13 +1736,158 @@
   document.addEventListener('keydown', e => { if(e.key === 'Escape'){ toggleChat(false); setDrawer(false); const f = $('#filters'); if(f) f.classList.remove('open'); } });
 
   /* =====================================================================
+     SEO & GEO — every route gets its own title, description, canonical URL,
+     social tags and schema.org JSON-LD. The same data feeds the visible page,
+     so what search engines and AI answer engines read matches what people see.
+     ===================================================================== */
+  const ORG_ID = SITE + '/#organization';
+  const abs = u => !u ? u : /^https?:/.test(u) ? u : SITE + '/' + String(u).replace(/^\//, '');
+  const url = h => SITE + toPath(h);
+  const DEFAULT_IMG = abs('assets/img/livarea-logo.png');
+  const ORG = { '@type':['RealEstateAgent','LocalBusiness'], '@id':ORG_ID, name:'Livarea', url:SITE + '/', logo:DEFAULT_IMG, image:DEFAULT_IMG,
+    description:'Hyderabad real estate advisory with 15+ years of experience; authorised marketing associate for leading developers across Kokapet, Neopolis, the Financial District, HITEC City, Kukatpally and Rajendra Nagar.',
+    telephone:'+' + C.phone, email:C.email, priceRange:'₹₹₹',
+    address:{ '@type':'PostalAddress', streetAddress:C.office, addressLocality:'Hyderabad', addressRegion:'Telangana', addressCountry:'IN' },
+    areaServed:LOCS.map(l => ({ '@type':'Place', name:l.name + ', Hyderabad' })),
+    identifier:{ '@type':'PropertyValue', propertyID:'TS RERA Agent Registration', value:C.rera },
+    knowsAbout:['New residential projects in Hyderabad','RERA Telangana','Home loans and EMI','Stamp duty in Telangana','NRI property investment'] };
+  const crumbs = list => ({ '@type':'BreadcrumbList', itemListElement:list.map(([n, h], i) => ({ '@type':'ListItem', position:i + 1, name:n, item:url(h) })) });
+  const faqLD = qa => ({ '@type':'FAQPage', mainEntity:qa.map(([q, a]) => ({ '@type':'Question', name:q, acceptedAnswer:{ '@type':'Answer', text:a } })) });
+  const itemList = (name, list) => ({ '@type':'ItemList', name:name, numberOfItems:list.length, itemListElement:list.map((p, i) => ({ '@type':'ListItem', position:i + 1, url:url('#/project/' + p.id), name:p.name + ' by ' + p.builder })) });
+  const stat = (p, word) => { const x = (p.stats || []).find(st => st.l.toLowerCase().includes(word)); return x ? x.v : null; };
+  const locName = p => LOC[p.loc] ? LOC[p.loc].name : p.locality;
+
+  // One factual, citable sentence per project — used on the page, in meta descriptions and in llms.txt.
+  function projectSummary(p){
+    const bits = [`${p.name} is a ${p.type === 'commercial' ? 'Grade-A commercial office' : p.bhkLabel + ' residential'} project by ${p.builder} in ${p.locality}, Hyderabad`];
+    if(p.sqft) bits.push(`with ${p.type === 'commercial' ? 'space' : 'homes'} of ${p.sqft[0].toLocaleString('en-IN')}–${p.sqft[1].toLocaleString('en-IN')} sq.ft`);
+    let t = bits.join(', ') + '.';
+    const towers = stat(p, 'tower'), floors = stat(p, 'floor'), units = stat(p, 'residence'), acres = stat(p, 'acre');
+    const scale = [acres && acres + ' acres', towers && towers + (towers > 1 ? ' towers' : ' tower'), floors && floors + ' floors', units && units.toLocaleString('en-IN') + ' residences'].filter(Boolean);
+    if(scale.length) t += ` The project spans ${scale.join(', ')}.`;
+    t += p.minCr != null ? ` Indicative prices start at ${p.price.replace(' onwards', '')} (${C.pricesAsOf}).` : ` Pricing is shared on request (${p.price}).`;
+    if(p.rera) t += ` It is registered under ${p.rera}.`;
+    return t;
+  }
+  function projectFAQ(p){
+    const l = LOC[p.loc], q = [];
+    q.push([`What is the price of ${p.name} by ${p.builder}?`, p.minCr != null ? `${p.name} starts at ${p.price} (indicative, compiled from public listings as of ${C.pricesAsOf}). ${p.priceNote}. Floor-rise, parking, GST and other charges are extra — Livarea shares the official cost sheet on request.` : `${p.name} is ${p.price.toLowerCase()}. ${p.priceNote}. Contact Livarea on +91 ${C.phoneDisplay.replace('+91 ', '')} for the current price sheet.`]);
+    q.push([`What configurations and sizes are available at ${p.name}?`, p.configs.map(c => `${c.c}: ${c.a}`).join('; ') + '.']);
+    q.push([`Is ${p.name} RERA registered?`, p.rera ? `Yes. ${p.name} is registered under ${p.rera}. You can verify it on rera.telangana.gov.in.` : `Ask Livarea for the current RERA registration details of ${p.name}, and always verify the number on rera.telangana.gov.in before paying any booking amount.`]);
+    q.push([`Where is ${p.name} located?`, `${p.name} is in ${p.locality}, Hyderabad.` + (l ? ` ${l.blurb}` + (l.band ? ` Prices in the ${l.group} corridor are roughly ${l.band}.` : '') : '')]);
+    if(p.highlights) q.push([`What are the key features of ${p.name}?`, p.highlights.join('; ') + '.']);
+    if(p.possession) q.push([`When is possession at ${p.name}?`, `The RERA possession target is ${p.possession}.`]);
+    q.push([`How can I get the ${p.name} brochure?`, p.brochure ? `Download the official ${p.name} brochure from this page after sharing your name and WhatsApp number — it includes floor plans, specifications and amenities.` : `Request it from Livarea on WhatsApp at ${C.phoneDisplay}.`]);
+    return q;
+  }
+  function localityFAQ(l){
+    const list = projectsIn(l.slug), q = [];
+    if(l.band) q.push([`What is the price per sq.ft in ${l.name}, Hyderabad?`, `Residential prices in the ${l.group} corridor are roughly ${l.band} (indicative, mid-2026 market reports). Outlook: ${l.appr}.`]);
+    q.push([`Which new projects are available in ${l.name}?`, list.length ? list.map(p => `${p.name} by ${p.builder} (${p.bhkLabel}, ${p.price})`).join('; ') + '.' : `Livarea covers ${l.name} and sources new launches and resale homes on request.`]);
+    q.push([`Is ${l.name} a good place to buy property?`, `${l.tag}. ${l.blurb}`]);
+    return q;
+  }
+  function routeSEO(key, arg, params){
+    const home = ['Home', '#/'];
+    const site = { '@type':'WebSite', '@id':SITE + '/#website', url:SITE + '/', name:'Livarea', publisher:{ '@id':ORG_ID }, inLanguage:'en-IN',
+      potentialAction:{ '@type':'SearchAction', target:{ '@type':'EntryPoint', urlTemplate:SITE + '/buy/?q={search_term_string}' }, 'query-input':'required name=search_term_string' } };
+    const resi = PROJECTS.filter(p => p.type === 'residential');
+    switch(key){
+      case '': return { title:'Livarea — New Projects, Flats & Apartments in Hyderabad | RERA-Registered Advisory',
+        desc:`Compare ${PROJECTS.length} verified projects from ${BUILDERS.length} top developers in Kokapet, Neopolis, Financial District, HITEC City & Kukatpally. Real photos, floor plans, prices from ${crLabel(Math.min(...PROJECTS.map(p => p.minCr).filter(v => v != null)))}, EMI tools. TS RERA ${C.rera}.`,
+        ld:[ORG, site, itemList('Featured projects in Hyderabad', PROJECTS)] };
+      case 'buy': case 'commercial': {
+        const locs = (params.get('loc') || '').split(',').filter(k => LOC[k]).map(k => LOC[k].name);
+        const where = locs.length ? locs.join(', ') : 'Hyderabad';
+        const list = key === 'commercial' ? PROJECTS.filter(p => p.type === 'commercial') : PROJECTS;
+        return { title:key === 'commercial' ? `Commercial Property & Office Space in Hyderabad | Livarea` : `New Projects & Apartments for Sale in ${where} — Prices, Floor Plans | Livarea`,
+          desc:key === 'commercial' ? 'Grade-A commercial office investment in the Financial District, Hyderabad — strata sale, specifications and pricing.' : `Browse ${list.length} new residential projects in ${where}: 2, 3, 4 & 5 BHK apartments from Godrej, Sumadhura, Rajapushpa, Myscape and more. Filter by budget, BHK and locality.`,
+          canonical:url('#/' + key), ld:[{ '@type':'CollectionPage', name:'New projects in Hyderabad', url:url('#/' + key), isPartOf:{ '@id':SITE + '/#website' } }, itemList('Projects', list), crumbs([home, [key === 'commercial' ? 'Commercial' : 'New projects', '#/' + key]])] };
+      }
+      case 'project': {
+        const p = PBYID[arg]; if(!p) return { title:'Project not found | Livarea', noindex:true };
+        const l = LOC[p.loc], pageUrl = url('#/project/' + p.id), imgs = (p.photos || []).map(x => abs(x.src));
+        const place = { '@type':p.type === 'commercial' ? 'Place' : 'ApartmentComplex', '@id':pageUrl + '#place', name:p.name + ' by ' + p.builder, description:p.blurb, url:pageUrl,
+          image:imgs.length ? imgs : undefined,
+          address:{ '@type':'PostalAddress', addressLocality:locName(p) + ', Hyderabad', addressRegion:'Telangana', addressCountry:'IN' },
+          containedInPlace:{ '@type':'Place', name:(l ? l.name : p.locality) + ', Hyderabad' },
+          numberOfAccommodationUnits:stat(p, 'residence') || undefined,
+          amenityFeature:(p.highlights || []).map(h => ({ '@type':'LocationFeatureSpecification', name:h, value:true })),
+          additionalProperty:[p.rera && { '@type':'PropertyValue', name:'RERA registration', value:p.rera }, p.sqft && { '@type':'PropertyValue', name:'Unit size (sq.ft)', minValue:p.sqft[0], maxValue:p.sqft[1], unitText:'sq.ft' }, { '@type':'PropertyValue', name:'Configuration', value:p.bhkLabel }, { '@type':'PropertyValue', name:'Developer', value:p.builder }].filter(Boolean) };
+        const listing = { '@type':'RealEstateListing', name:`${p.name} by ${p.builder} — ${p.bhkLabel} in ${locName(p)}, Hyderabad`, url:pageUrl, description:projectSummary(p), image:imgs[0] || undefined,
+          datePosted:C.updated || undefined, about:{ '@id':pageUrl + '#place' }, provider:{ '@id':ORG_ID },
+          offers:p.minCr != null ? { '@type':'Offer', price:Math.round(p.minCr * 1e7), priceCurrency:'INR', priceSpecification:{ '@type':'PriceSpecification', minPrice:Math.round(p.minCr * 1e7), priceCurrency:'INR' }, availability:'https://schema.org/InStock', seller:{ '@id':ORG_ID } } : undefined };
+        return { title:`${p.name} by ${p.builder}, ${locName(p)} — ${p.price}, ${p.bhkLabel}, Floor Plans${p.rera ? ', RERA' : ''} | Livarea`,
+          desc:projectSummary(p).slice(0, 300), image:imgs[0], canonical:pageUrl,
+          ld:[place, listing, faqLD(projectFAQ(p)), crumbs([home, ['New projects', '#/buy'], [locName(p), l ? '#/locality/' + l.slug : '#/buy'], [p.name, '#/project/' + p.id]])] };
+      }
+      case 'locality': {
+        const l = LOC[arg]; if(!l) return { title:'Locality not found | Livarea', noindex:true };
+        const list = projectsIn(l.slug);
+        return { title:`Flats & New Projects in ${l.name}, Hyderabad — Price per sq.ft${l.band ? ' ' + l.band.replace('/sqft', '') : ''} | Livarea`,
+          desc:`${l.name}, Hyderabad: ${l.tag}. ${list.length ? list.length + ' verified project' + (list.length > 1 ? 's' : '') + ' — ' + list.map(p => p.name).join(', ') + '. ' : ''}${l.band ? 'Price band ' + l.band + '. ' : ''}${l.blurb}`.slice(0, 300),
+          canonical:url('#/locality/' + l.slug),
+          ld:[{ '@type':'Place', name:l.name + ', Hyderabad', description:l.blurb, geo:{ '@type':'GeoCoordinates', latitude:l.lat, longitude:l.lng }, containedInPlace:{ '@type':'City', name:'Hyderabad' } },
+            itemList('Projects in ' + l.name, list), faqLD(localityFAQ(l)), crumbs([home, ['Localities', '#/localities'], [l.name, '#/locality/' + l.slug]])] };
+      }
+      case 'localities': return { title:'Hyderabad Localities & Property Market Outlook 2026 — Price per sq.ft by Area | Livarea',
+        desc:'Price per sq.ft, appreciation outlook and projects across Kokapet, Neopolis, Financial District, HITEC City, Kukatpally, Kollur, Tellapur, Narsingi and Rajendra Nagar.',
+        ld:[{ '@type':'ItemList', name:'Hyderabad localities', itemListElement:LOCS.map((l, i) => ({ '@type':'ListItem', position:i + 1, url:url('#/locality/' + l.slug), name:l.name })) }, crumbs([home, ['Localities', '#/localities']])] };
+      case 'builders': return { title:'Top Real Estate Developers in Hyderabad — Projects by Builder | Livarea',
+        desc:'Projects by ' + BUILDERS.map(b => b.name).join(', ') + ' — verified by Livarea.', ld:[crumbs([home, ['Builders', '#/builders']])] };
+      case 'tools': {
+        const t = { emi:['Home Loan EMI Calculator', 'Calculate your monthly home-loan EMI, total interest and year-by-year balance.'], afford:['Home Affordability Calculator', 'How much home can you afford? Uses bank EMI limits, RBI loan-to-value rules and Telangana registration costs.'], stamp:['Stamp Duty & Registration Calculator — Telangana', 'Telangana stamp duty (4%), transfer duty (1.5%) and registration fee (0.5%) for Hyderabad property.'], rentbuy:['Rent vs Buy Calculator', 'Compare renting and buying a home in Hyderabad over your time horizon.'], area:['Land Area Converter — Sq.ft, Sq.yd, Gunta, Acre, Cent', 'Convert square feet, square yards, guntas, acres, cents and hectares instantly.'] }[arg] || ['Property Calculators', 'Free home-buying calculators for Hyderabad.'];
+        return { title:t[0] + ' | Livarea', desc:t[1], canonical:url('#/tools/' + (arg || 'emi')),
+          ld:[{ '@type':'WebApplication', name:t[0], applicationCategory:'FinanceApplication', operatingSystem:'Any', offers:{ '@type':'Offer', price:0, priceCurrency:'INR' }, url:url('#/tools/' + (arg || 'emi')) }, crumbs([home, ['Tools', '#/tools/emi']])] };
+      }
+      case 'guides': return { title:'Buying Property in Hyderabad: RERA, Stamp Duty, Home Loans & FAQs | Livarea',
+        desc:'Plain-English guide to buying a home in Hyderabad — RERA protection, documents to check, stamp duty, home-loan basics and answers to common questions.',
+        ld:[faqLD(window.FAQ.flatMap(c => c.items)), crumbs([home, ['Guides & FAQ', '#/guides']])] };
+      case 'post': return { title:'Post Your Property for Free — Sell or Rent Out in Hyderabad | Livarea',
+        desc:'List your flat, villa or plot in West Hyderabad for free. Screened buyers and tenants only — your number stays private.', ld:[crumbs([home, ['List your property', '#/post']])] };
+      case 'rent': return { title:'Flats for Rent in Hyderabad — Kokapet, Gachibowli, HITEC City | Livarea', desc:'Verified rental homes across West Hyderabad. Tell us your area, budget and move-in date and we match you on WhatsApp.' };
+      case 'resale': return { title:'Resale Flats in Hyderabad — Ready to Move | Livarea', desc:'Verified ready-to-move resale apartments across West Hyderabad, matched to your budget.' };
+      case 'upcoming': return { title:'Pre-Launch & Upcoming Projects in Hyderabad — Priority Access | Livarea', desc:'Register once to hear about RERA-registered pre-launch projects in Kokapet, Neopolis, Financial District and more before public launch.' };
+      case 'about': return { title:'About Livarea — 15+ Years in Hyderabad Real Estate | TS RERA ' + C.rera, desc:'Who we are: an independent Hyderabad property advisory since 15+ years, TS RERA agent ' + C.rera + '. How we shortlist projects, how we are paid, and the corridors we know best.', ld:[Object.assign({ '@type':'AboutPage', url:url('#/about') }, { mainEntity:{ '@id':ORG_ID } }), ORG] };
+      case 'partner': return { title:'For Developers — Exclusive Project Marketing in Hyderabad | Livarea', desc:'Give your project one dedicated marketing partner: qualified buyers, accompanied visits and monthly reporting.' };
+      case 'contact': return { title:'Contact Livarea — Call or WhatsApp ' + C.phoneDisplay, desc:`Talk to a RERA-registered property advisor in Hyderabad. Call or WhatsApp ${C.phoneDisplay}, email ${C.email}.`, ld:[{ '@type':'ContactPage', url:url('#/contact'), mainEntity:{ '@id':ORG_ID } }, ORG] };
+      case 'compare': return { title:'Compare Projects | Livarea', noindex:true };
+      case 'shortlist': return { title:'Your Shortlist | Livarea', noindex:true };
+      default: return { title:'Page not found | Livarea', noindex:true };
+    }
+  }
+  function setMeta(attr, key, val){
+    let m = document.head.querySelector(`meta[${attr}="${key}"]`);
+    if(!m){ m = document.createElement('meta'); m.setAttribute(attr, key); document.head.appendChild(m); }
+    m.setAttribute('content', val);
+  }
+  function applySEO(seo, key){
+    const canonical = seo.canonical || (key ? url('#/' + key) : SITE + '/');
+    document.title = seo.title;
+    setMeta('name', 'description', seo.desc || ORG.description);
+    setMeta('name', 'robots', seo.noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large');
+    let link = document.head.querySelector('link[rel=canonical]');
+    if(!link){ link = document.createElement('link'); link.rel = 'canonical'; document.head.appendChild(link); }
+    link.href = canonical;
+    setMeta('property', 'og:title', seo.title); setMeta('property', 'og:description', seo.desc || ORG.description);
+    setMeta('property', 'og:url', canonical); setMeta('property', 'og:image', seo.image || DEFAULT_IMG);
+    setMeta('property', 'og:type', key === 'project' ? 'article' : 'website');
+    setMeta('name', 'twitter:title', seo.title); setMeta('name', 'twitter:description', seo.desc || ORG.description); setMeta('name', 'twitter:image', seo.image || DEFAULT_IMG);
+    $$('script[data-seo]').forEach(x => x.remove());
+    if(seo.ld && seo.ld.length){
+      const sc = document.createElement('script'); sc.type = 'application/ld+json'; sc.setAttribute('data-seo', '');
+      sc.textContent = JSON.stringify({ '@context':'https://schema.org', '@graph':JSON.parse(JSON.stringify(seo.ld)) });
+      document.head.appendChild(sc);
+    }
+  }
+
+  /* =====================================================================
      ROUTER
      ===================================================================== */
-  const TITLES = { '':'Livarea | New projects, resale & rentals in Hyderabad — RERA-registered advisory', buy:'New projects in Hyderabad | Livarea', commercial:'Commercial property in Hyderabad | Livarea', rent:'Homes for rent in Hyderabad | Livarea', resale:'Resale homes in Hyderabad | Livarea', compare:'Compare projects | Livarea', shortlist:'Your shortlist | Livarea', localities:'Hyderabad localities & market outlook | Livarea', builders:'Builders we represent | Livarea', upcoming:'Pre-launch projects in Hyderabad | Livarea', post:'List your property free | Livarea', guides:'Home-buying guides & FAQs | Livarea', about:'About Livarea', partner:'For developers | Livarea', contact:'Contact Livarea' };
   const NAV_KEY = { buy:'buy', commercial:'commercial', rent:'rent', resale:'resale', project:'buy', localities:'localities', locality:'localities', tools:'tools', builders:'buy' };
   let lastPath = null;
   function router(){
-    const raw = location.hash.replace(/^#\/?/, '');
+    const raw = currentRoute();
     const [pathPart, qs] = raw.split('?');
     const segs = pathPart.split('/').filter(Boolean);
     const key = segs[0] || '', arg = segs[1] ? decodeURIComponent(segs[1]) : undefined;
@@ -1462,33 +1895,38 @@
     const route = ROUTES.hasOwnProperty(key) ? ROUTES[key] : null;
     document.body.classList.remove('has-pd-cta');
     searchState = null;
+    closeModal(); closeLb();
     app.innerHTML = route ? route(params, arg) : notFound();
     app.classList.remove('fade-in'); void app.offsetWidth; app.classList.add('fade-in');
-    document.title = TITLES[key] || 'Livarea';
+    applySEO(routeSEO(route ? key : '404', arg, params), segs.join('/'));
     if(route && route.after) route.after(params, arg);
-    if(pathPart !== lastPath) window.scrollTo(0, 0);
+    if(PATH_MODE) rewriteLinks(document);
+    prefill(app);
+    if(pathPart !== lastPath && lastPath !== null) window.scrollTo(0, 0);
     lastPath = pathPart;
     const nk = NAV_KEY[key] || key;
     $$('.main-nav a[data-nav], .bottom-nav [data-nav]').forEach(a => a.classList.toggle(a.closest('.bottom-nav') ? 'on' : 'active', a.dataset.nav === (nk || 'home')));
     setDrawer(false);
     updateBadges();
+    document.dispatchEvent(new CustomEvent('livarea:rendered'));
   }
-  // in-page "#id" anchors (not routes) should scroll, not route
+  function rewriteLinks(root){ $$('a[href^="#/"]', root).forEach(a => a.setAttribute('href', toPath(a.getAttribute('href')))); }
   document.addEventListener('click', e => {
-    const a = e.target.closest('a[href^="#"]');
-    if(a && !a.getAttribute('href').startsWith('#/') && a.getAttribute('href').length > 1){
-      const t = document.getElementById(a.getAttribute('href').slice(1));
-      e.preventDefault(); if(t) t.scrollIntoView({ behavior:'smooth', block:'start' });
+    const a = e.target.closest('a[href]');
+    if(!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || a.target === '_blank' || a.hasAttribute('download')) return;
+    const href = a.getAttribute('href');
+    if(href.startsWith('#/')){ if(PATH_MODE){ e.preventDefault(); navigate(href); } return; }
+    if(href.startsWith('#') && href.length > 1){
+      // in-page anchors (#ov, #plans …) scroll instead of routing
+      const t = document.getElementById(href.slice(1)); e.preventDefault(); if(t) t.scrollIntoView({ behavior:'smooth', block:'start' }); return;
     }
+    if(PATH_MODE && href.startsWith('/') && !href.startsWith('//') && !href.startsWith('/assets/') && !/\.(xml|txt|pdf)$/.test(href.split('?')[0])){ e.preventDefault(); navigate(href); }
   });
-  window.addEventListener('hashchange', router);
-
-  // FAQ structured data, generated from the same source as the page
-  try{
-    const ld = document.createElement('script'); ld.type = 'application/ld+json';
-    ld.textContent = JSON.stringify({ '@context':'https://schema.org', '@type':'FAQPage', mainEntity:window.FAQ.flatMap(c => c.items.map(([q, a]) => ({ '@type':'Question', name:q, acceptedAnswer:{ '@type':'Answer', text:a } }))) });
-    document.head.appendChild(ld);
-  }catch(e){}
+  if(PATH_MODE){
+    // Old shared '#/…' links keep working on the production site.
+    if(location.hash.startsWith('#/')) history.replaceState(null, '', toPath(location.hash));
+    window.addEventListener('popstate', router);
+  } else window.addEventListener('hashchange', router);
 
   router();
 })();
