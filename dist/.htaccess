@@ -4,6 +4,10 @@ DirectoryIndex index.html
 ErrorDocument 404 /404.html
 AddDefaultCharset utf-8
 
+# Old prelaunch landing pages (used in earlier ads) now point to the new site
+RedirectMatch 301 (?i)^/pre-launch-projects-in-hyderabad(/.*)?$ /upcoming/
+RedirectMatch 301 (?i)^/prelaunch-neopolis(/.*)?$ /locality/neopolis/
+
 <IfModule mod_rewrite.c>
 RewriteEngine On
 # Always use HTTPS (turn on the free SSL in hPanel first)
