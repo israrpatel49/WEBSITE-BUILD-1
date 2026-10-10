@@ -17,7 +17,7 @@ window.LIVAREA = {
   pricesAsOf: 'July 2026',
 
   // Used for canonical URLs, the sitemap and structured data. Change if the domain changes.
-  siteUrl: 'https://www.livarea.com',
+  siteUrl: 'https://www.livareaproperties.com',
   updated: '2026-10-09',
   updatedLabel: 'October 2026'
 };

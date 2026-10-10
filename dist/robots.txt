@@ -53,4 +53,4 @@ User-agent: CCBot
 Allow: /
 Disallow: /assets/brochures/
 
-Sitemap: https://www.livarea.com/sitemap.xml
+Sitemap: https://www.livareaproperties.com/sitemap.xml

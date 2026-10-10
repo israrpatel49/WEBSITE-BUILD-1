@@ -3,10 +3,10 @@
 ## Deploy (the short version)
 Recommended: **Cloudflare Pages** connected to this GitHub repo — build command empty, output directory `dist`. Every push then redeploys automatically.
 
-Upload the **`dist/`** folder to any static host — Netlify, Vercel, Cloudflare Pages, GitHub Pages or cPanel — and point `www.livarea.com` at it. That's the production site: every page is pre-rendered HTML with clean URLs (`/project/palais/`, `/locality/kokapet/`), so Google, Bing, ChatGPT, Perplexity and other AI answer engines can read it all.
+Upload the **`dist/`** folder to any static host — Netlify, Vercel, Cloudflare Pages, GitHub Pages or cPanel — and point `www.livareaproperties.com` at it. That's the production site: every page is pre-rendered HTML with clean URLs (`/project/palais/`, `/locality/kokapet/`), so Google, Bing, ChatGPT, Perplexity and other AI answer engines can read it all.
 
 After deploying:
-1. Submit `https://www.livarea.com/sitemap.xml` in **Google Search Console** and **Bing Webmaster Tools**.
+1. Submit `https://www.livareaproperties.com/sitemap.xml` in **Google Search Console** and **Bing Webmaster Tools**.
 2. Create/claim the **Google Business Profile** for Livarea with the same name, phone and address as the site.
 3. Set up the lead Sheet (see *Leads* below) — until then, leads reach you only via WhatsApp.
 
