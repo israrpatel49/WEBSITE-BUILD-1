@@ -11,7 +11,7 @@
   const C = window.LIVAREA, PROJECTS = window.PROJECTS, LOCS = window.LOCALITIES;
   const RESALE = window.RESALE || [], RENTALS = window.RENTALS || [];
   const app = document.getElementById('app');
-  const SITE = (C.siteUrl || 'https://www.livarea.in').replace(/\/$/, '');
+  const SITE = (C.siteUrl || 'https://www.livarea.com').replace(/\/$/, '');
   const PATH_MODE = document.documentElement.dataset.routing === 'path';
   const BASE = PATH_MODE ? '/' : '';
   // Relative asset paths in data.js must become root-relative on nested /route/ pages.

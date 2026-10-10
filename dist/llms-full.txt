@@ -1,9 +1,9 @@
 # Livarea — full project fact sheet
 
-Source: https://www.livarea.in/ · Updated 2026-10-09 · Prices indicative as of July 2026; confirm the official cost sheet before booking.
+Source: https://www.livarea.com/ · Updated 2026-10-09 · Prices indicative as of July 2026; confirm the official cost sheet before booking.
 
 ## Pristinia by Rajapushpa Properties
-URL: https://www.livarea.in/project/pristinia/
+URL: https://www.livarea.com/project/pristinia/
 - Location: Kokapet, Hyderabad (Kokapet)
 - Type: residential
 - Configuration: 2, 3, 4 BHK
@@ -15,7 +15,7 @@ URL: https://www.livarea.in/project/pristinia/
 Premium 2, 3 & 4 BHK towers in Kokapet, moments from Neopolis and the Financial District.
 
 ## Skyra by Rajapushpa Properties
-URL: https://www.livarea.in/project/skyra/
+URL: https://www.livarea.com/project/skyra/
 - Location: Neopolis, Kokapet, Hyderabad (Neopolis)
 - Type: residential
 - Configuration: 3, 4 BHK
@@ -36,7 +36,7 @@ URL: https://www.livarea.in/project/skyra/
 Three 56-floor towers on 6.5 acres in Neopolis — 777 large 3 & 4 BHK homes with 11 ft ceilings, a private lobby and a separate staff room for every apartment, and 1,15,000 sq.ft of amenities across a 7-level clubhouse, stilt level and sky level.
 
 ## Beaumonde by Koncept Ambience
-URL: https://www.livarea.in/project/beaumonde/
+URL: https://www.livarea.com/project/beaumonde/
 - Location: Kokapet, Hyderabad (Kokapet)
 - Type: residential
 - Configuration: 3 BHK
@@ -48,7 +48,7 @@ URL: https://www.livarea.in/project/beaumonde/
 Only 140 homes in a single 14-storey tower on 1.6 acres — low-density luxury with a rooftop infinity pool and 54,000 sq.ft of amenities.
 
 ## Palais Royale by Sumadhura Group
-URL: https://www.livarea.in/project/palais/
+URL: https://www.livarea.com/project/palais/
 - Location: Puppalaguda, Financial District, Hyderabad (Puppalaguda)
 - Type: residential
 - Configuration: 4, 5 BHK
@@ -68,7 +68,7 @@ URL: https://www.livarea.in/project/palais/
 A single floating tower connecting three wings on 7.35 acres — just 72 homes per acre, an 85,000 sq.ft branded clubhouse and a Sky Lounge at 212.9 m. Cloud facilities, ERV and evaporative cooling set a new benchmark for fine living between HITEC City and Neopolis.
 
 ## The Olympus by Sumadhura Group
-URL: https://www.livarea.in/project/olympus/
+URL: https://www.livarea.com/project/olympus/
 - Location: Nanakramguda, Financial District, Hyderabad (Nanakramguda)
 - Type: residential
 - Configuration: 3, 4 BHK
@@ -88,7 +88,7 @@ URL: https://www.livarea.in/project/olympus/
 Two of Hyderabad's tallest residential towers in the making — 44 floors beside WaveRock SEZ, minutes from Amazon and Wipro Circle. Ultra-luxe 3 & 4 BHKs with a terrace pool and full clubhouse.
 
 ## Songs of the Sun by Myscape Properties
-URL: https://www.livarea.in/project/songs/
+URL: https://www.livarea.com/project/songs/
 - Location: Financial District, Hyderabad (Financial District)
 - Type: residential
 - Configuration: 3, 4 BHK
@@ -108,7 +108,7 @@ URL: https://www.livarea.in/project/songs/
 Four G+37 towers in 20 shades of the sun — 592 corner residences, four to a floor, built in just two formats for light, privacy and indoor-outdoor living on the Financial District skyline.
 
 ## Brooklyn Avenue by Godrej Properties
-URL: https://www.livarea.in/project/brooklyn/
+URL: https://www.livarea.com/project/brooklyn/
 - Location: Kukatpally, Hyderabad (Kukatpally)
 - Type: residential
 - Configuration: 3, 4 BHK
@@ -125,7 +125,7 @@ URL: https://www.livarea.in/project/brooklyn/
 Brooklyn-themed 3 & 4 BHK high-rises near KPHB Metro, minutes from HITEC City — with The Milestones Club, pocket gardens, a Brooklyn Bridge themed play area and a terrace party deck.
 
 ## Regal Pavilion by Godrej Properties
-URL: https://www.livarea.in/project/regal/
+URL: https://www.livarea.com/project/regal/
 - Location: Rajendra Nagar, Hyderabad (Rajendra Nagar)
 - Type: residential
 - Configuration: 2, 3, 4 BHK
@@ -141,7 +141,7 @@ URL: https://www.livarea.in/project/regal/
 A 13-acre Godrej township on NH-44 in Rajendra Nagar — 2, 3 & 4 BHK homes in Luxe and Premium formats, the palace-themed Club Regalia and 75,000 sq.ft of curated landscapes.
 
 ## Fortune Grande by Surajbhan (SSI)
-URL: https://www.livarea.in/project/fortune/
+URL: https://www.livarea.com/project/fortune/
 - Location: Neopolis, Kokapet, Hyderabad (Neopolis)
 - Type: residential
 - Configuration: 3.5, 4 BHK
@@ -162,7 +162,7 @@ URL: https://www.livarea.in/project/fortune/
 Hanging apartments with private lobbies and 11-ft ceilings across 6 towers on 12 acres in Neopolis — a 1,00,000 sq.ft clubhouse, 75% open space and lake views of Gandipet & Kokapet.
 
 ## Kohinoor by Auro Realty
-URL: https://www.livarea.in/project/kohinoor/
+URL: https://www.livarea.com/project/kohinoor/
 - Location: HITEC City, Hyderabad (HITEC City)
 - Type: residential
 - Configuration: 2, 3, 4 BHK + duplex
@@ -174,7 +174,7 @@ URL: https://www.livarea.in/project/kohinoor/
 Seven towers of 2, 3 & 4 BHK homes and duplexes in the heart of HITEC City.
 
 ## One by Navanaami Projects
-URL: https://www.livarea.in/project/navanaami/
+URL: https://www.livarea.com/project/navanaami/
 - Location: Kokapet, Hyderabad (Kokapet)
 - Type: residential
 - Configuration: 3.5, 4 BHK
@@ -194,7 +194,7 @@ URL: https://www.livarea.in/project/navanaami/
 A single iconic 63-floor tower of just 359 residences on 2.2 acres — low-density, lake-facing luxury with 60,000 sq.ft of amenities and a rooftop terrace.
 
 ## One by MSN by MSN Realty
-URL: https://www.livarea.in/project/onebymsn/
+URL: https://www.livarea.com/project/onebymsn/
 - Location: Neopolis, Kokapet, Hyderabad (Neopolis)
 - Type: residential
 - Configuration: 4 BHK
@@ -215,7 +215,7 @@ URL: https://www.livarea.in/project/onebymsn/
 An ultra-luxury 5-tower address on 7.7 acres in Neopolis — 655 four-bedroom residences with 12 ft ceilings, two-sided panoramic views of Gandipet Lake, a 1,80,000 sq.ft clubhouse with sky park and a yacht clubhouse.
 
 ## Western Windsor Park by Western Construction
-URL: https://www.livarea.in/project/windsor/
+URL: https://www.livarea.com/project/windsor/
 - Location: Nanakramguda · Commercial, Hyderabad (Nanakramguda)
 - Type: commercial
 - Configuration: Office space

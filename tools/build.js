@@ -31,7 +31,7 @@ const DIST = path.join(ROOT, 'dist');
 const sandbox = { window: {} };
 vm.runInNewContext(fs.readFileSync(path.join(ROOT, 'assets/js/data.js'), 'utf8'), sandbox);
 const { LIVAREA: C, PROJECTS, LOCALITIES, FAQ } = sandbox.window;
-const SITE = (C.siteUrl || 'https://www.livarea.in').replace(/\/$/, '');
+const SITE = (C.siteUrl || 'https://www.livarea.com').replace(/\/$/, '');
 const TODAY = C.updated || new Date().toISOString().slice(0, 10);
 
 // ---- routes to pre-render ----

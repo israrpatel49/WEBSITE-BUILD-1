@@ -9,9 +9,9 @@ RewriteEngine On
 # Always use HTTPS (turn on the free SSL in hPanel first)
 RewriteCond %{HTTPS} off
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-# livarea.in -> www.livarea.in, so Google sees one site
-RewriteCond %{HTTP_HOST} ^livarea\.in$ [NC]
-RewriteRule ^ https://www.livarea.in%{REQUEST_URI} [L,R=301]
+# livarea.com -> www.livarea.com, so Google sees one site
+RewriteCond %{HTTP_HOST} ^livarea\.com$ [NC]
+RewriteRule ^ https://www.livarea.com%{REQUEST_URI} [L,R=301]
 </IfModule>
 
 <IfModule mod_headers.c>
