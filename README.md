@@ -1,6 +1,8 @@
 # Livarea — Hyderabad real estate site
 
 ## Deploy (the short version)
+Recommended: **Cloudflare Pages** connected to this GitHub repo — build command empty, output directory `dist`. Every push then redeploys automatically.
+
 Upload the **`dist/`** folder to any static host — Netlify, Vercel, Cloudflare Pages, GitHub Pages or cPanel — and point `www.livarea.in` at it. That's the production site: every page is pre-rendered HTML with clean URLs (`/project/palais/`, `/locality/kokapet/`), so Google, Bing, ChatGPT, Perplexity and other AI answer engines can read it all.
 
 After deploying:
@@ -47,5 +49,5 @@ PDFs live in `assets/brochures/` and are linked from each project's `brochure` f
 Every form opens WhatsApp with the enquiry pre-filled — **but the visitor still has to press Send**. To capture every lead even when they don't, set up `tools/livarea-leads.gs` (instructions at the top of that file) and paste its URL into `leadEndpoint` in `data.js`. Each submission is then saved to a Google Sheet and emailed to you.
 
 ## Known trade-offs
-- Pages are rendered in the browser (hash routes such as `#/project/palais`). Google can index JavaScript-rendered pages, but more slowly and less reliably than plain static HTML. If organic search traffic matters, the next step is to pre-render one HTML file per project.
+- `dist/` must be rebuilt (`node tools/build.js`) after any content change, or the live site won't show it.
 - Map pins sit at approximate locality centres, not at exact sites.
