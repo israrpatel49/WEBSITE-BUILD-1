@@ -1071,8 +1071,9 @@
             </form>
             <div data-pane-body="bro" hidden>
               <ul class="hl-list" style="grid-template-columns:1fr;margin:0 0 14px">${['Floor plans & unit sizes','Specifications','Amenities & master plan'].map(t => `<li>${I.check}<span>${t}</span></li>`).join('')}</ul>
-              <button class="btn btn-primary btn-block" type="button" data-bro="${p.id}">${I.download}${p.brochure ? 'Download official brochure' : 'Request brochure'}</button>
-              <p class="form-note">Unlocks after you share your name and WhatsApp number.</p>
+              ${p.brochure ? `<button class="btn btn-primary btn-block" type="button" data-bro="${p.id}">${I.download}Download official brochure</button>
+              <p class="form-note">Unlocks after you share your name and WhatsApp number.</p>` : `<a class="btn btn-wa btn-block" target="_blank" rel="noopener" href="${waLink("Hi Livarea, please send me the brochure and price sheet for " + p.wa + '.')}">${I.wa}Request brochure on WhatsApp</a>
+              <p class="form-note">We'll send the latest brochure and price sheet to your WhatsApp.</p>`}
             </div>
             ${leadNote}
             <div style="display:flex;gap:8px;margin-top:12px"><a class="btn btn-ghost btn-sm" style="flex:1" href="${telLink}">${I.phone}Call</a><a class="btn btn-ghost btn-sm" style="flex:1" href="#/compare">${I.compare}Compare</a></div>
@@ -1817,7 +1818,7 @@
         const listing = { '@type':'RealEstateListing', name:`${p.name} by ${p.builder} — ${p.bhkLabel} in ${locName(p)}, Hyderabad`, url:pageUrl, description:projectSummary(p), image:imgs[0] || undefined,
           datePosted:C.updated || undefined, about:{ '@id':pageUrl + '#place' }, provider:{ '@id':ORG_ID },
           offers:p.minCr != null ? { '@type':'Offer', price:Math.round(p.minCr * 1e7), priceCurrency:'INR', priceSpecification:{ '@type':'PriceSpecification', minPrice:Math.round(p.minCr * 1e7), priceCurrency:'INR' }, availability:'https://schema.org/InStock', seller:{ '@id':ORG_ID } } : undefined };
-        return { title:`${p.name} by ${p.builder}, ${locName(p)} — ${p.price}, ${p.bhkLabel}, Floor Plans${p.rera ? ', RERA' : ''} | Livarea`,
+        return { title:`${p.name} by ${p.builder}, ${locName(p)} — ${p.price}, ${p.bhkLabel}${p.floorplan ? ', Floor Plans' : ''}${p.rera ? ', RERA' : ''} | Livarea`,
           desc:projectSummary(p).slice(0, 300), image:imgs[0], canonical:pageUrl,
           ld:[place, listing, faqLD(projectFAQ(p)), crumbs([home, ['New projects', '#/buy'], [locName(p), l ? '#/locality/' + l.slug : '#/buy'], [p.name, '#/project/' + p.id]])] };
       }
